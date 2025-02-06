@@ -1,4 +1,3 @@
-
 # 🥗 Smart Diabetes Diet Recommender
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
@@ -40,21 +39,16 @@ To set up the project locally, follow these steps:
 
 2. **Navigate to the project directory**:
    ```bash
-  cd diabetes-diet-recommender
+   cd diabetes-diet-recommender
    ```
 3. **Install backend dependencies**:
+
    ```bash
-   cd backend
-   ```
-    ```bash
    npm install
    ```
 
-3. **Install frontend dependencies**:
+4. **Install frontend dependencies**:
    ```bash
-   cd frontend
-   ```
-    ```bash
    npm install
    ```
 
