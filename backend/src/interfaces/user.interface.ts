@@ -14,7 +14,7 @@ export interface IUser extends Document {
     signRefreshToken: () => string
     isVerified: boolean
     gender: string;
-    phone_number: number;
+    phone_number: string;
     date_of_birth: Date;
     health_details: {
         diabetic_type: string;
@@ -37,11 +37,17 @@ export interface IUser extends Document {
 export interface IActivationToken {
     token: string;
     activationCode: string;
-    expirationTimestamp:any
+    expirationTimestamp: any
 }
 
 
 export interface IActivationRequest {
     activation_token: string;
     activation_code: string;
+}
+
+
+export interface ILoginRequest {
+    email: string;
+    password: string;
 }

@@ -4,7 +4,11 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../config";
 
+// Email regex pattern (strict validation)
 const emailRegexPattern: RegExp = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+// Password regex: At least 8 characters, one uppercase, one lowercase, one digit, and one special character
+const passwordRegexPattern: RegExp = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 const userSchema: Schema<IUser> = new mongoose.Schema({
     firstname: {
@@ -23,9 +27,15 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
     },
     password: {
         type: String,
-        minlength: [8, "Password must be at least 8 characters"],
         required: [true, "Please enter your password"],
-        select: false
+        select: false,
+        validate: {
+            validator: function (value: string) {
+                return passwordRegexPattern.test(value);
+            },
+            message:
+                "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
+        },
     },
     avatar: {
         public_id: {
@@ -48,9 +58,10 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
         required: false,
     },
     phone_number: {
-        type: Number,
-        required: false
-    },
+        type: String, 
+        required: false,
+        match: [/^\d{10,15}$/, "Invalid phone number format"],
+      },
     date_of_birth: {
         type: Date,
         required: false
@@ -96,9 +107,9 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
             default: false,
             required: false
         },
-        preffered_time_for_diet: {
+        preferred_time_for_diet: {
             type: String,
-            default: "08:00 AM",
+            default: "",
             required: false
         },
         notification_preference: {
@@ -111,43 +122,37 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
 }, { timestamps: true })
 
 
-// Hash password before saving into the database
+// Hash password before saving
 userSchema.pre<IUser>("save", async function (next) {
     if (!this.isModified("password")) return next();
     try {
         this.password = await bcrypt.hash(this.password, 10);
+        next();
     } catch (error: any) {
         return next(error);
     }
-    next();
-})
+});
 
 // Method to sign the access token
 userSchema.methods.signAccessToken = function () {
-    try {
-        return jwt.sign({ id: this._id }, ACCESS_TOKEN || "", {
-            expiresIn: "24h"
-        });
-    } catch (error: any) {
-        throw new Error("Could not generate access token")
-    }
-}
+    return jwt.sign({ id: this._id }, ACCESS_TOKEN || "", {
+        expiresIn: "24h",
+    });
+};
+
 
 // Method to sign the refresh token
 userSchema.methods.signRefreshToken = function () {
-    try {
-        return jwt.sign({ id: this._id }, REFRESH_TOKEN || "", {
-            expiresIn: '14d',
-        });
-    } catch (error: any) {
-        console.error("Error signing refresh token", error);
-        throw new Error("Could not generate refresh token");
-    }
+    return jwt.sign({ id: this._id }, REFRESH_TOKEN || "", {
+        expiresIn: "14d",
+    });
 };
 
+
+// Compare password
 userSchema.methods.comparePassword = async function (enteredPassword: string): Promise<boolean> {
-    return await bcrypt.compare(enteredPassword, this.password)
-}
+    return await bcrypt.compare(enteredPassword, this.password);
+};
 
 const userModel: Model<IUser> = mongoose.model("User", userSchema);
 export default userModel

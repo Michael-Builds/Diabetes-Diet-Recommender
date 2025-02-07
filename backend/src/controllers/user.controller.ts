@@ -2,10 +2,12 @@ import { CatchAsyncErrors } from './../middlewares/catchAsyncError';
 import { NextFunction, Request, Response } from "express";
 import userModel from "../models/user";
 import ErrorHandler from "../utils/ErrorHandler";
-import { IActivationRequest, IActivationToken, IUser } from "../interfaces/user.interface";
+import { IActivationRequest, IActivationToken, ILoginRequest, IUser } from "../interfaces/user.interface";
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 import { ACTIVATION_SECRET } from "../config";
 import sendEmail from "../utils/sendEmail";
+import { clearCache, setCache } from '../utils/catche.management';
+import { sendToken } from '../utils/jwt';
 
 // Account registration handler
 export const accountRegister = CatchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
@@ -13,6 +15,20 @@ export const accountRegister = CatchAsyncErrors(async (req: Request, res: Respon
     const { firstname, lastname, email, phone_number, password, gender } = req.body;
 
     try {
+        // Validate email format
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(email)) {
+            return next(new ErrorHandler("Invalid email format", 400));
+        }
+
+        // Validate password strength
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        if (!passwordRegex.test(password)) {
+            return next(
+                new ErrorHandler("Weak Password", 400)
+            );
+        }
+
         // Check if email already exists
         const isEmailExist = await userModel.exists({ email });
         if (isEmailExist) {
@@ -30,9 +46,9 @@ export const accountRegister = CatchAsyncErrors(async (req: Request, res: Respon
         });
 
         await user.save();
+
         // Generate activation token
         const { token, activationCode, expirationTimestamp } = createActivationToken(user);
-
         const currentTime = Math.floor(Date.now() / 1000);
         const timeRemaining = Math.max(0, Math.ceil((expirationTimestamp - currentTime) / 60));
 
@@ -169,3 +185,42 @@ export const activateAccount = CatchAsyncErrors(async (req: Request, res: Respon
         return next(new ErrorHandler("Activation failed", 500));
     }
 });
+ 
+// User login handler
+export const userLogin = CatchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email, password } = req.body as ILoginRequest;
+
+        if (!email || !password) {
+            return next(new ErrorHandler("Please enter email and password", 400));
+        }
+
+        // Find the user in the database
+        const user = await userModel.findOne({ email }).select("+password");
+        if (!user) {
+            return next(new ErrorHandler("Invalid email or password", 400));
+        }
+
+        // Compare the provided password with the stored hashed password
+        const isPasswordMatch = await user.comparePassword(password);
+        if (!isPasswordMatch) {
+            return next(new ErrorHandler("Invalid email or password", 400));
+        }
+
+        await user.save();
+
+        // Save user session in Redis with a 1-hour expiration
+        await setCache(user?.id, user, 3600);
+
+        // Generate tokens and send them in the response
+        sendToken(user, 200, res);
+    } catch (err: any) {
+        return next(new ErrorHandler(err.message, 400));
+    }
+});
+
+
+export const userLogout = CatchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+    
+})
+
