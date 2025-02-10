@@ -34,7 +34,6 @@ const endpointsFiles = ["./src/routes/user.ts"];
 // Run Swagger Autogen
 swaggerAutogen()(outputFile, endpointsFiles, doc).then(() => {
     console.log("✅ Swagger JSON Generated Successfully!");
-
     try {
         const swaggerData = JSON.parse(fs.readFileSync(outputFile, "utf-8"));
 
@@ -49,7 +48,6 @@ swaggerAutogen()(outputFile, endpointsFiles, doc).then(() => {
 
         // Save the modified Swagger JSON
         fs.writeFileSync(outputFile, JSON.stringify(swaggerData, null, 2));
-        console.log("✅ Updated Swagger JSON with Authentication Rules!");
     } catch (error) {
         console.error("❌ Error updating Swagger JSON:", error);
     }
