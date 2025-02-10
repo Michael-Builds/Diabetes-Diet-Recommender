@@ -1,16 +1,20 @@
-import { CatchAsyncErrors } from './../middlewares/catchAsyncError';
-import { NextFunction, Request, Response } from "express";
-import userModel from "../models/user";
-import ErrorHandler from "../utils/ErrorHandler";
-import { AuthenticatedRequest, IActivationRequest, IActivationToken, ILoginRequest, IUser } from "../interfaces/user.interface";
-import jwt, { JwtPayload, Secret } from "jsonwebtoken";
-import { ACCESS_TOKEN, ACCESS_TOKEN_EXPIRY, ACTIVATION_SECRET, REFRESH_TOKEN, REFRESH_TOKEN_EXPIRY, RESET_PASSWORD_SECRET } from "../config";
-import sendEmail from "../utils/sendEmail";
-import { clearCache, setCache } from '../utils/catche.management';
-import { accessTokenOptions, refreshTokenOptions, sendToken } from '../utils/jwt';
 import bcrypt from 'bcrypt';
-import { redis } from '../utils/redis';
+import { NextFunction, Request, Response } from "express";
+import jwt, { JwtPayload, Secret } from "jsonwebtoken";
+import { ACCESS_TOKEN, ACTIVATION_SECRET, REFRESH_TOKEN, RESET_PASSWORD_SECRET } from "../config";
+import { AuthenticatedRequest, IActivationRequest, IActivationToken, ILoginRequest, IUser } from "../interfaces/user.interface";
+import userModel from "../models/user";
 import { getUserById } from '../services/user.services';
+import { clearCache, setCache } from '../utils/catche.management';
+import ErrorHandler from "../utils/ErrorHandler";
+import { accessTokenOptions, refreshTokenOptions, sendToken } from '../utils/jwt';
+import { redis } from '../utils/redis';
+import sendEmail from "../utils/sendEmail";
+import { CatchAsyncErrors } from './../middlewares/catchAsyncError';
+import notificationModel from '../models/notification.model';
+
+// Validate password strength
+export const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 // Account registration handler
 export const accountRegister = CatchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
@@ -24,8 +28,7 @@ export const accountRegister = CatchAsyncErrors(async (req: Request, res: Respon
             return next(new ErrorHandler("Invalid email format", 400));
         }
 
-        // Validate password strength
-        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
         if (!passwordRegex.test(password)) {
             return next(
                 new ErrorHandler("Weak Password", 400)
@@ -254,7 +257,12 @@ export const userLogout = CatchAsyncErrors(async (req: AuthenticatedRequest, res
 });
 
 
-// forgot password
+// Function to generate a 4-digit activation code
+const generateActivationCode = (): string => {
+    return Math.floor(1000 + Math.random() * 9000).toString();
+};
+
+// Forgot Password Handler
 export const forgotPassword = CatchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
     const { email } = req.body;
 
@@ -265,31 +273,39 @@ export const forgotPassword = CatchAsyncErrors(async (req: Request, res: Respons
             return next(new ErrorHandler("User not found with this email", 404));
         }
 
-        // Generate a 4-digit reset code and JWT token
-        const { token, activationCode } = createResetPasswordToken(user);
+        // Generate a 4-digit reset code
+        const activationCode = generateActivationCode();
+
+        // Store activation code in Redis (expires in 10 minutes)
+        await redis.set(`reset-code:${email}`, activationCode, "EX", 600);
 
         // Email data
-        const data = { user: { firstname: user.firstname }, activationCode };
+        const data = { firstname: user.firstname, activationCode };
 
-        // Send email with reset code
+        // Send email with activation code
         await sendEmail({
             email: user.email,
             subject: "Password Reset Request",
-            template: "password-reset.ejs",
+            template: "forgot-password.ejs",
             data,
+        });
+
+        // Create a notification for the user
+        await notificationModel.create({
+            userId: String(user._id),
+            title: "Forgot Password",
+            message: `You've requested to reset your password.`,
         });
 
         res.status(200).json({
             success: true,
             message: `A password reset code has been sent to ${user.email}`,
-            resetToken: token,
         });
 
     } catch (error: any) {
         return next(new ErrorHandler(error.message, 500));
     }
 });
-
 
 // Function to create a reset token with activation code
 export const createResetPasswordToken = (user: IUser): IActivationToken => {
@@ -311,27 +327,59 @@ export const createResetPasswordToken = (user: IUser): IActivationToken => {
 };
 
 
-// reset password handler
+// Reset Password Handler
 export const resetPassword = CatchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
-    const { token, activationCode, newPassword } = req.body;
+    const { email, activationCode, newPassword } = req.body;
 
     try {
-        // Decode the JWT and get the user ID and code
-        const decoded = jwt.verify(token, RESET_PASSWORD_SECRET as string) as { user: { id: string }; activationCode: string };
+        // Validate input
+        if (!email || !activationCode || !newPassword) {
+            return next(new ErrorHandler("All fields are required", 400));
+        }
 
-        if (decoded.activationCode !== activationCode) {
+        // Retrieve stored activation code from Redis
+        const storedCode = await redis.get(`reset-code:${email}`);
+
+        if (!storedCode) {
+            return next(new ErrorHandler("Reset code has expired or is invalid", 400));
+        }
+
+        if (storedCode !== activationCode) {
             return next(new ErrorHandler("Invalid reset code", 400));
         }
 
-        // Find the user by ID
-        const user = await userModel.findById(decoded.user.id);
+        // Find the user by email
+        const user = await userModel.findOne({ email });
         if (!user) {
             return next(new ErrorHandler("User not found", 404));
         }
 
-        // Update the password
+        // Hash the new password
         user.password = await bcrypt.hash(newPassword, 10);
+
+        // Save updated password
         await user.save();
+
+        // Remove activation code from Redis after successful reset
+        await redis.del(`reset-code:${email}`);
+
+        // Create a notification for the user
+        await notificationModel.create({
+            userId: String(user._id),
+            title: "Reset Password",
+            message: `You've successfully reset your password.`,
+        });
+
+
+        // Send email with activation code
+        await sendEmail({
+            email: user.email,
+            subject: "Password Reset Successful",
+            template: "reset-password-success.ejs",
+            data: {
+                firstname: user.firstname,
+            },
+        });
 
         res.status(200).json({
             success: true,
@@ -339,12 +387,7 @@ export const resetPassword = CatchAsyncErrors(async (req: Request, res: Response
         });
 
     } catch (error: any) {
-        if (error.name === 'TokenExpiredError') {
-            return next(new ErrorHandler("Reset token has expired", 400));
-        } else if (error.name === 'JsonWebTokenError') {
-            return next(new ErrorHandler("Invalid reset token", 400));
-        }
-        return next(new ErrorHandler("Password reset failed", 500));
+        return next(new ErrorHandler(error.message, 500));
     }
 });
 
@@ -449,3 +492,180 @@ export const updateAccessToken = CatchAsyncErrors(async (req: AuthenticatedReque
         return next(new ErrorHandler("Authorization failed", 500));
     }
 });
+
+
+// Update user profile
+export const updateUserProfile = CatchAsyncErrors(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?._id;
+        if (!userId) {
+            return next(new ErrorHandler("User not authenticated", 401));
+        }
+
+        const { firstname, lastname, oldPassword, newPassword, avatar, phone_number, gender } = req.body;
+
+        // Fetch user from database
+        const user = await userModel.findById(userId).select("+password");
+        if (!user) {
+            return next(new ErrorHandler("User not found", 404));
+        }
+
+        // Optional updates
+        if (firstname) user.firstname = firstname;
+        if (lastname) user.lastname = lastname;
+        if (phone_number) user.phone_number = phone_number;
+        if (gender) user.gender = gender;
+
+        // Handle password update with old password verification
+        if (oldPassword && newPassword) {
+            const isMatch = await bcrypt.compare(oldPassword, user.password);
+            if (!isMatch) {
+                return next(new ErrorHandler("Old password is incorrect", 400));
+            }
+
+            if (!passwordRegex.test(newPassword)) {
+                return next(
+                    new ErrorHandler("Weak Password: Must be at least 8 characters, contain uppercase, lowercase, number, and special character.", 400)
+                );
+            }
+
+            // Hash and update new password
+            user.password = await bcrypt.hash(newPassword, 10);
+        }
+
+        // Handle avatar update (assumes an object with `public_id` and `url`)
+        if (avatar && avatar.public_id && avatar.url) {
+            user.avatar = {
+                public_id: avatar.public_id,
+                url: avatar.url,
+            };
+        }
+
+        // Save updated user details
+        await user.save();
+
+        // Create a notification for the user
+        await notificationModel.create({
+            userId: userId,
+            title: "Profile Update",
+            message: `You've updated your profile successfully.`,
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+            user,
+        });
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+}
+);
+
+
+// User health details handler
+export const updateUserHealthDetails = CatchAsyncErrors(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?._id;
+        if (!userId) {
+            return next(new ErrorHandler("User not authenticated", 401));
+        }
+
+        const {
+            diabetic_type,
+            current_weight,
+            height,
+            preferred_diet_type,
+            food_allergies,
+            foods_to_avoid,
+            favorite_foods,
+        } = req.body;
+
+        // Fetch user from database
+        const user = await userModel.findById(userId);
+        if (!user) {
+            return next(new ErrorHandler("User not found", 404));
+        }
+
+        // Update health details if provided
+        if (diabetic_type) user.health_details.diabetic_type = diabetic_type;
+        if (current_weight) user.health_details.current_weight = current_weight;
+        if (height) user.health_details.height = height;
+
+        // Update dietary preferences if provided
+        if (preferred_diet_type) user.diatery_preferences.preferred_diet_type = preferred_diet_type;
+        if (food_allergies) user.diatery_preferences.food_allergies = food_allergies;
+        if (foods_to_avoid) user.diatery_preferences.foods_to_avoid = foods_to_avoid;
+        if (favorite_foods) user.diatery_preferences.favorite_foods = favorite_foods;
+
+        await user.save();
+
+        // Create a notification for the user
+        await notificationModel.create({
+            userId: String(user._id),
+            title: "Health & Dietary Preferences Update",
+            message: `You've successfully updated your health and dietary preferences.`,
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Health and dietary preferences updated successfully",
+            user,
+        });
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+}
+);
+
+
+// Update user customizations handler
+export const updateUserCustomizations = CatchAsyncErrors(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?._id;
+        if (!userId) {
+            return next(new ErrorHandler("User not authenticated", 401));
+        }
+
+        const {
+            meal_reminder_preference,
+            preferred_time_for_diet,
+            notification_preference,
+        } = req.body;
+
+        // Fetch user from database
+        const user = await userModel.findById(userId);
+        if (!user) {
+            return next(new ErrorHandler("User not found", 404));
+        }
+
+        // Update customizations if provided
+        if (meal_reminder_preference !== undefined) {
+            user.customizations.meal_reminder_preference = meal_reminder_preference;
+        }
+        if (preferred_time_for_diet) {
+            user.customizations.preferred_time_for_diet = preferred_time_for_diet;
+        }
+        if (notification_preference) {
+            user.customizations.notification_preference = notification_preference;
+        }
+
+        await user.save();
+
+        // Create a notification for the user
+        await notificationModel.create({
+            userId: String(user._id),
+            title: "Customizations Update",
+            message: `You've successfully updated your customizations.`,
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Customizations updated successfully",
+            user,
+        });
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+}
+);

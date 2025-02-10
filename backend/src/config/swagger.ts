@@ -5,7 +5,11 @@ const protectedRoutes = [
     "/logout",
     "/get-user",
     "/notifications",
-    "/update-notification-status/{id}"
+    "/update-notification-status/{id}",
+    "/update-profile",
+    "/update-health-details",
+    "/update-customizations"
+
 ];
 
 const doc = {

@@ -58,10 +58,10 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
         required: false,
     },
     phone_number: {
-        type: String, 
+        type: String,
         required: false,
         match: [/^\d{10,15}$/, "Invalid phone number format"],
-      },
+    },
     date_of_birth: {
         type: Date,
         required: false

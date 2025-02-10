@@ -6,6 +6,9 @@ import {
     getUserInfo,
     resendActivationCode,
     resetPassword,
+    updateUserCustomizations,
+    updateUserHealthDetails,
+    updateUserProfile,
     userLogin,
     userLogout
 } from "../controllers/user.controller";
@@ -27,5 +30,8 @@ userRouter.get("/logout", isAuthenticated, userLogout);
 userRouter.get("/get-user", isAuthenticated, getUserInfo);
 userRouter.get("/notifications", isAuthenticated, getUserNotifications);
 userRouter.put("/update-notification-status/:id", isAuthenticated, updateNotificationStatus);
+userRouter.put("/update-profile", isAuthenticated, updateUserProfile);
+userRouter.put("/update-health-details", isAuthenticated, updateUserHealthDetails);
+userRouter.put("/update-customizations", isAuthenticated, updateUserCustomizations);
 
 export default userRouter;

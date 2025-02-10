@@ -30,7 +30,7 @@ export interface IUser extends Document {
     },
     customizations: {
         meal_reminder_preference: boolean;
-        preffered_time_for_diet: string;
+        preferred_time_for_diet: string;
         notification_preference: string;
     }
 }
@@ -38,7 +38,7 @@ export interface IUser extends Document {
 export interface IActivationToken {
     token: string;
     activationCode: string;
-    expirationTimestamp: number; 
+    expirationTimestamp: number;
 }
 
 
