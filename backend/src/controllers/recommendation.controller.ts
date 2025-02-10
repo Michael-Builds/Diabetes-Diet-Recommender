@@ -47,17 +47,20 @@ export const generateMonthlyRecommendations = CatchAsyncErrors(
             ? [user.diatery_preferences.preferred_diet_type, ...user.diatery_preferences.foods_to_avoid]
             : ["diabetic"];
 
-        // **Check if recommendations already exist**
-        const existingRecommendations = await recommendationModel.findOne({ userId });
-        if (existingRecommendations) {
-            return res.json({ message: "Recommendations already exist. No new data generated." });
+        // **Check existing recommendations and enforce the limit of 3**
+        const existingRecommendations = await recommendationModel.find({ userId });
+        if (existingRecommendations.length >= 3) {
+            return res.json({ message: "Maximum limit reached: You can have up to 3 active recommendations." });
         }
 
         const recommendations = [];
 
         for (let i = 0; i < 30; i++) {
             const dailyMeals = await generateDailyMeals(dietaryPreferences, i);
-            if (!dailyMeals) continue;
+            if (!dailyMeals || !dailyMeals.breakfast.length || !dailyMeals.lunch.length || !dailyMeals.dinner.length) {
+                console.warn(`⚠️ Skipping day ${i + 1} due to missing meals in dataset.`);
+                continue;
+            }
 
             const recommendation = await recommendationModel.create({
                 userId: user._id,
@@ -72,7 +75,7 @@ export const generateMonthlyRecommendations = CatchAsyncErrors(
             recommendations.push(recommendation);
         }
 
-        // **Create an in-app notification**
+        // **Create a notification**
         await notificationModel.create({
             userId: user._id,
             title: "New Monthly Meal Plan",
@@ -94,6 +97,8 @@ export const generateMonthlyRecommendations = CatchAsyncErrors(
     }
 );
 
+
+
 /**
  * Retrieve recommendations for a specific user
  */
@@ -102,7 +107,14 @@ export const getUserRecommendations = CatchAsyncErrors(
     async (req: Request, res: Response, next: NextFunction) => {
         const { userId } = req.params;
 
-        const recommendations = await recommendationModel.find({ userId }).populate("meals.mealId", "name type ingredients calories").sort({ date: 1 });
+        // **Fully populate meal data**
+        const recommendations = await recommendationModel
+            .find({ userId })
+            .populate({
+                path: "meals.mealId",
+                select: "name type ingredients calories protein carbs fat glycemicIndex fiber sodium potassium magnesium calcium"
+            })
+            .sort({ date: 1 });
 
         if (!recommendations.length) {
             return next(new ErrorHandler("No recommendations found", 404));
@@ -111,3 +123,4 @@ export const getUserRecommendations = CatchAsyncErrors(
         res.json({ success: true, recommendations });
     }
 );
+

@@ -5,19 +5,18 @@ import mealModel from "../models/meals.model";
  */
 export const generateDailyMeals = async (dietaryPreferences: string[], dayIndex: number) => {
     try {
+        // **Ensure meals come strictly from your dataset**
         const breakfastOptions = await mealModel.find({ type: "breakfast", dietTypes: { $in: dietaryPreferences } });
         const lunchOptions = await mealModel.find({ type: "lunch", dietTypes: { $in: dietaryPreferences } });
         const dinnerOptions = await mealModel.find({ type: "dinner", dietTypes: { $in: dietaryPreferences } });
 
         if (!breakfastOptions.length || !lunchOptions.length || !dinnerOptions.length) {
-            console.warn("⚠️ Some meal types are missing. Returning partial results.");
+            console.warn("Some meal types are missing in dataset. Returning partial results.");
         }
 
         const getMealCombo = (options: any[], day: number) => {
-            const numItems = day % 2 === 0 ? 3 : 2; 
             if (options.length === 0) return [];
-            const shuffled = options.sort(() => 0.5 - Math.random());
-            return shuffled.slice(0, numItems);
+            return options.sort(() => 0.5 - Math.random()).slice(0, 3);
         };
 
         return {
