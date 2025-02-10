@@ -35,7 +35,6 @@ const endpointsFiles = ["./src/routes/user.ts"];
 swaggerAutogen()(outputFile, endpointsFiles, doc).then(() => {
     console.log("✅ Swagger JSON Generated Successfully!");
 
-    // Delay execution to ensure file is fully written
     try {
         const swaggerData = JSON.parse(fs.readFileSync(outputFile, "utf-8"));
 
