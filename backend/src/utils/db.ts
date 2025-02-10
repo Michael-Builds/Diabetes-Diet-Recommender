@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import colors from 'colors';
 import { DATABASE } from "../config";
+import { loadCsvDataToMongoDB } from "./loadData";
 
 
 const connectDB = async () => {
@@ -10,6 +11,7 @@ const connectDB = async () => {
         }
         await mongoose.connect(DATABASE).then((data: any) => {
             console.log(colors.bgGreen.white('Database Connected Successfully!'));
+            loadCsvDataToMongoDB()
         });
     } catch (error: any) {
         console.log(colors.bgRed.white(`Error Connecting to Database: ${error.message}`));

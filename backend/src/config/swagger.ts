@@ -8,8 +8,9 @@ const protectedRoutes = [
     "/update-notification-status/{id}",
     "/update-profile",
     "/update-health-details",
-    "/update-customizations"
-
+    "/update-customizations",
+    "/generate-recommendations/:userId",
+    "/get-recommendations/:userId",
 ];
 
 const doc = {

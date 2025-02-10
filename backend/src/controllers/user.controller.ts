@@ -408,7 +408,8 @@ export const getUserInfo = CatchAsyncErrors(async (req: AuthenticatedRequest, re
             } catch (error: any) {
                 if (error.name === 'TokenExpiredError') {
                     // Attempt to refresh the token
-                    updateAccessToken(req, res, next);
+                    await updateAccessToken(req, res, next); // Ensure this is awaited
+
                     // Check if the token refresh was successful
                     if (req.user) {
                         userId = String(req.user._id);
@@ -432,7 +433,7 @@ export const getUserInfo = CatchAsyncErrors(async (req: AuthenticatedRequest, re
 
         if (userSession) {
             const userDetails = JSON.parse(userSession);
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 message: "User retrieved successfully",
                 user: userDetails
@@ -444,6 +445,7 @@ export const getUserInfo = CatchAsyncErrors(async (req: AuthenticatedRequest, re
         return next(new ErrorHandler(err.message, 400));
     }
 });
+
 
 // Update access token handler
 export const updateAccessToken = CatchAsyncErrors(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {

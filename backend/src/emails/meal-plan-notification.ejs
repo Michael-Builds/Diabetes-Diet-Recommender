@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Your Monthly Meal Plan is Ready!</title>
+    <style>
+      body {
+        font-family: "Nunito Sans", sans-serif;
+        background-color: #f4f4f4;
+        color: #222222;
+      }
+      .email-wrapper {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .email-header {
+        background-color: #0070f3;
+        padding: 20px;
+        color: white;
+        text-align: center;
+      }
+      .email-body {
+        background-color: white;
+        padding: 20px;
+      }
+      .email-footer {
+        background-color: #f4f4f4;
+        padding: 20px;
+        text-align: center;
+      }
+      .button {
+        background-color: #0070f3;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 5px;
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-wrapper">
+      <div class="email-header">
+        <h1>📢 Your Meal Plan is Ready!</h1>
+      </div>
+      <div class="email-body">
+        <p>Hi <%= firstname %>,</p>
+        <p>
+          We’ve successfully generated your **personalized meal plan** for the
+          next 30 days based on your dietary preferences:
+          <strong><%= dietaryPreferences %></strong>.
+        </p>
+        <p>Your meal plan starts from **<%= startDate %>**.</p>
+        <p>
+          Log in to your account now to explore your daily meal recommendations.
+        </p>
+        <!-- <p>
+          <a href="https://yourapp.com/meals" class="button">View Meal Plan</a>
+        </p> -->
+      </div>
+      <div class="email-footer">
+        <p>
+          If you have any questions, contact us at
+          <a href="mailto:support@example.com">support@example.com</a>.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
