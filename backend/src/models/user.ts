@@ -29,13 +29,13 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
         type: String,
         required: [true, "Please enter your password"],
         select: false,
-        validate: {
-            validator: function (value: string) {
-                return passwordRegexPattern.test(value);
-            },
-            message:
-                "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
-        },
+        // validate: {
+        //     validator: function (value: string) {
+        //         return passwordRegexPattern.test(value);
+        //     },
+        //     message:
+        //         "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
+        // },
     },
     avatar: {
         public_id: {

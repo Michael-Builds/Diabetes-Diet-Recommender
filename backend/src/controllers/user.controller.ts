@@ -395,22 +395,19 @@ export const resetPassword = CatchAsyncErrors(async (req: Request, res: Response
 // get user infor handler
 export const getUserInfo = CatchAsyncErrors(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-        let userId: string;
+        let userId: string | null = null;
 
         // Check for access token in cookies
         const accessToken = req.cookies.access_token;
 
         if (accessToken) {
             try {
-                // Attempt to verify the access token
+                // Verify the access token
                 const decoded = jwt.verify(accessToken, ACCESS_TOKEN as string) as JwtPayload;
                 userId = decoded.id;
             } catch (error: any) {
                 if (error.name === 'TokenExpiredError') {
-                    // Attempt to refresh the token
-                    await updateAccessToken(req, res, next); // Ensure this is awaited
-
-                    // Check if the token refresh was successful
+                    await updateAccessToken(req, res, next);
                     if (req.user) {
                         userId = String(req.user._id);
                     } else {
@@ -428,19 +425,30 @@ export const getUserInfo = CatchAsyncErrors(async (req: AuthenticatedRequest, re
             return next(new ErrorHandler("User not authenticated", 401));
         }
 
-        // Retrieve user details from Redis or database
-        const userSession = await redis.get(userId);
-
-        if (userSession) {
-            const userDetails = JSON.parse(userSession);
+        // **Check Redis first**
+        const cachedUser = await redis.get(userId);
+        if (cachedUser) {
             return res.status(200).json({
                 success: true,
-                message: "User retrieved successfully",
-                user: userDetails
+                message: "User retrieved successfully (from cache).",
+                user: JSON.parse(cachedUser),
             });
-        } else {
-            await getUserById(userId, res);
         }
+
+        // **Fetch from MongoDB if not in Redis**
+        const user = await userModel.findById(userId);
+        if (!user) {
+            return next(new ErrorHandler("User not found", 404));
+        }
+
+        // **Store the latest user data in Redis for faster retrieval next time**
+        await setCache(userId, user, 3600);
+
+        res.status(200).json({
+            success: true,
+            message: "User retrieved successfully.",
+            user,
+        });
     } catch (err: any) {
         return next(new ErrorHandler(err.message, 400));
     }
@@ -451,45 +459,25 @@ export const getUserInfo = CatchAsyncErrors(async (req: AuthenticatedRequest, re
 export const updateAccessToken = CatchAsyncErrors(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const refresh_token = req.cookies.refresh_token as string;
-        // const refresh_token = req.headers["refresh-token"] as string;
+        if (!refresh_token) return next(new ErrorHandler("No refresh token provided", 400));
 
         const decoded = jwt.verify(refresh_token, REFRESH_TOKEN as string) as JwtPayload;
-        const message = "Couldn't refresh token";
-
-        if (!decoded) {
-            return next(new ErrorHandler(message, 400));
-        }
+        if (!decoded) return next(new ErrorHandler("Invalid refresh token", 400));
 
         const session = await redis.get(decoded.id);
-
-        if (!session) {
-            return next(new ErrorHandler("Please login to access this resource", 400));
-        }
+        if (!session) return next(new ErrorHandler("Session expired. Please login again.", 400));
 
         const user = JSON.parse(session);
 
-        const accessToken = jwt.sign({ id: user._id }, ACCESS_TOKEN as string, {
-            expiresIn: "24h",
-        });
+        const accessToken = jwt.sign({ id: user._id }, ACCESS_TOKEN as string, { expiresIn: "24h" });
+        const refreshToken = jwt.sign({ id: user._id }, REFRESH_TOKEN as string, { expiresIn: "14d" });
 
-        const refreshToken = jwt.sign({ id: user._id }, REFRESH_TOKEN as string, {
-            expiresIn: "14d",
-        });
-
-        // If called within a middleware, continue the request
-        if (next) {
-            req.user = user;
-            return next();
-        }
         res.cookie("access_token", accessToken, accessTokenOptions);
         res.cookie("refresh_token", refreshToken, refreshTokenOptions);
 
         await setCache(user?.id, user, 604800);
 
-        res.status(200).json({
-            success: true,
-            accessToken,
-        });
+        return res.status(200).json({ success: true, accessToken });
     } catch (err: any) {
         return next(new ErrorHandler("Authorization failed", 500));
     }
@@ -512,46 +500,28 @@ export const updateUserProfile = CatchAsyncErrors(async (req: AuthenticatedReque
             return next(new ErrorHandler("User not found", 404));
         }
 
-        // Optional updates
         if (firstname) user.firstname = firstname;
         if (lastname) user.lastname = lastname;
         if (phone_number) user.phone_number = phone_number;
         if (gender) user.gender = gender;
 
-        // Handle password update with old password verification
         if (oldPassword && newPassword) {
             const isMatch = await bcrypt.compare(oldPassword, user.password);
             if (!isMatch) {
                 return next(new ErrorHandler("Old password is incorrect", 400));
             }
-
-            if (!passwordRegex.test(newPassword)) {
-                return next(
-                    new ErrorHandler("Weak Password: Must be at least 8 characters, contain uppercase, lowercase, number, and special character.", 400)
-                );
-            }
-
-            // Hash and update new password
             user.password = await bcrypt.hash(newPassword, 10);
         }
 
-        // Handle avatar update (assumes an object with `public_id` and `url`)
         if (avatar && avatar.public_id && avatar.url) {
-            user.avatar = {
-                public_id: avatar.public_id,
-                url: avatar.url,
-            };
+            user.avatar = { public_id: avatar.public_id, url: avatar.url };
         }
 
         // Save updated user details
         await user.save();
 
-        // Create a notification for the user
-        await notificationModel.create({
-            userId: userId,
-            title: "Profile Update",
-            message: `You've updated your profile successfully.`,
-        });
+        // **Update in Redis**
+        await setCache(String(userId), user, 3600);
 
         res.status(200).json({
             success: true,
@@ -561,8 +531,7 @@ export const updateUserProfile = CatchAsyncErrors(async (req: AuthenticatedReque
     } catch (error: any) {
         return next(new ErrorHandler(error.message, 500));
     }
-}
-);
+});
 
 
 // User health details handler
@@ -589,12 +558,9 @@ export const updateUserHealthDetails = CatchAsyncErrors(async (req: Authenticate
             return next(new ErrorHandler("User not found", 404));
         }
 
-        // Update health details if provided
         if (diabetic_type) user.health_details.diabetic_type = diabetic_type;
         if (current_weight) user.health_details.current_weight = current_weight;
         if (height) user.health_details.height = height;
-
-        // Update dietary preferences if provided
         if (preferred_diet_type) user.diatery_preferences.preferred_diet_type = preferred_diet_type;
         if (food_allergies) user.diatery_preferences.food_allergies = food_allergies;
         if (foods_to_avoid) user.diatery_preferences.foods_to_avoid = foods_to_avoid;
@@ -602,12 +568,8 @@ export const updateUserHealthDetails = CatchAsyncErrors(async (req: Authenticate
 
         await user.save();
 
-        // Create a notification for the user
-        await notificationModel.create({
-            userId: String(user._id),
-            title: "Health & Dietary Preferences Update",
-            message: `You've successfully updated your health and dietary preferences.`,
-        });
+        // **Update in Redis**
+        await setCache(String(userId), user, 3600);
 
         res.status(200).json({
             success: true,
@@ -617,8 +579,7 @@ export const updateUserHealthDetails = CatchAsyncErrors(async (req: Authenticate
     } catch (error: any) {
         return next(new ErrorHandler(error.message, 500));
     }
-}
-);
+});
 
 
 // Update user customizations handler
@@ -629,11 +590,7 @@ export const updateUserCustomizations = CatchAsyncErrors(async (req: Authenticat
             return next(new ErrorHandler("User not authenticated", 401));
         }
 
-        const {
-            meal_reminder_preference,
-            preferred_time_for_diet,
-            notification_preference,
-        } = req.body;
+        const { meal_reminder_preference, preferred_time_for_diet, notification_preference } = req.body;
 
         // Fetch user from database
         const user = await userModel.findById(userId);
@@ -641,7 +598,6 @@ export const updateUserCustomizations = CatchAsyncErrors(async (req: Authenticat
             return next(new ErrorHandler("User not found", 404));
         }
 
-        // Update customizations if provided
         if (meal_reminder_preference !== undefined) {
             user.customizations.meal_reminder_preference = meal_reminder_preference;
         }
@@ -654,12 +610,8 @@ export const updateUserCustomizations = CatchAsyncErrors(async (req: Authenticat
 
         await user.save();
 
-        // Create a notification for the user
-        await notificationModel.create({
-            userId: String(user._id),
-            title: "Customizations Update",
-            message: `You've successfully updated your customizations.`,
-        });
+        // **Update in Redis**
+        await setCache(String(userId), user, 3600);
 
         res.status(200).json({
             success: true,
@@ -669,5 +621,5 @@ export const updateUserCustomizations = CatchAsyncErrors(async (req: Authenticat
     } catch (error: any) {
         return next(new ErrorHandler(error.message, 500));
     }
-}
-);
+});
+
