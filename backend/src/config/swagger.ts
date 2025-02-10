@@ -1,4 +1,12 @@
 import swaggerAutogen from "swagger-autogen";
+import fs from "fs";
+
+const protectedRoutes = [
+    "/logout",
+    "/get-user",
+    "/notifications",
+    "/update-notification-status/{id}"
+];
 
 const doc = {
     info: {
@@ -7,14 +15,43 @@ const doc = {
         version: "1.0.0",
     },
     host: "localhost:4000",
-    basePath: "/api", 
+    basePath: "/api",
     schemes: ["http"],
+    securityDefinitions: {
+        BearerAuth: {
+            type: "apiKey",
+            name: "Authorization",
+            in: "header",
+            description: "Enter your bearer token in the format 'Bearer {token}'"
+        }
+    },
+    paths: {}
 };
-
 
 const outputFile = "./src/config/swagger-output.json";
 const endpointsFiles = ["./src/routes/user.ts"];
 
+// Run Swagger Autogen
 swaggerAutogen()(outputFile, endpointsFiles, doc).then(() => {
     console.log("✅ Swagger JSON Generated Successfully!");
+
+    // Delay execution to ensure file is fully written
+    try {
+        const swaggerData = JSON.parse(fs.readFileSync(outputFile, "utf-8"));
+
+        // Dynamically update security for protected routes
+        protectedRoutes.forEach(route => {
+            if (swaggerData.paths[route]) {
+                Object.keys(swaggerData.paths[route]).forEach(method => {
+                    swaggerData.paths[route][method].security = [{ BearerAuth: [] }];
+                });
+            }
+        });
+
+        // Save the modified Swagger JSON
+        fs.writeFileSync(outputFile, JSON.stringify(swaggerData, null, 2));
+        console.log("✅ Updated Swagger JSON with Authentication Rules!");
+    } catch (error) {
+        console.error("❌ Error updating Swagger JSON:", error);
+    }
 });

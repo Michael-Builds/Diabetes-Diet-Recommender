@@ -2,12 +2,15 @@ import { CatchAsyncErrors } from './../middlewares/catchAsyncError';
 import { NextFunction, Request, Response } from "express";
 import userModel from "../models/user";
 import ErrorHandler from "../utils/ErrorHandler";
-import { IActivationRequest, IActivationToken, ILoginRequest, IUser } from "../interfaces/user.interface";
+import { AuthenticatedRequest, IActivationRequest, IActivationToken, ILoginRequest, IUser } from "../interfaces/user.interface";
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
-import { ACTIVATION_SECRET } from "../config";
+import { ACCESS_TOKEN, ACCESS_TOKEN_EXPIRY, ACTIVATION_SECRET, REFRESH_TOKEN, REFRESH_TOKEN_EXPIRY, RESET_PASSWORD_SECRET } from "../config";
 import sendEmail from "../utils/sendEmail";
 import { clearCache, setCache } from '../utils/catche.management';
-import { sendToken } from '../utils/jwt';
+import { accessTokenOptions, refreshTokenOptions, sendToken } from '../utils/jwt';
+import bcrypt from 'bcrypt';
+import { redis } from '../utils/redis';
+import { getUserById } from '../services/user.services';
 
 // Account registration handler
 export const accountRegister = CatchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
@@ -185,7 +188,7 @@ export const activateAccount = CatchAsyncErrors(async (req: Request, res: Respon
         return next(new ErrorHandler("Activation failed", 500));
     }
 });
- 
+
 // User login handler
 export const userLogin = CatchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -220,7 +223,229 @@ export const userLogin = CatchAsyncErrors(async (req: Request, res: Response, ne
 });
 
 
-export const userLogout = CatchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
-    
-})
+// user logout handler
+export const userLogout = CatchAsyncErrors(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        // Clear the access token cookie by setting its maxAge to 1 millisecond
+        res.cookie("access_token", "", { maxAge: 1, httpOnly: true });
 
+        // Clear the refresh token cookie by setting its maxAge to 1 millisecond
+        res.cookie("refresh_token", "", { maxAge: 1, httpOnly: true });
+
+        // Extract the authenticated user from the request object
+        const user = req.user;
+
+        if (user) {
+            // Convert the user's ObjectId to a string format
+            const userId = String(user._id);
+            await clearCache(userId);
+        } else {
+            console.warn("No user found in request, skipping Redis deletion.");
+        }
+        // Send a success response to the client indicating the user has been logged out
+        res.status(200).json({
+            success: true,
+            message: "Logged out successfully",
+        });
+    } catch (err: any) {
+        // Pass any errors that occur to the global error handler
+        return next(new ErrorHandler(err.message, 400));
+    }
+});
+
+
+// forgot password
+export const forgotPassword = CatchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+    const { email } = req.body;
+
+    try {
+        // Check if user exists
+        const user = await userModel.findOne({ email });
+        if (!user) {
+            return next(new ErrorHandler("User not found with this email", 404));
+        }
+
+        // Generate a 4-digit reset code and JWT token
+        const { token, activationCode } = createResetPasswordToken(user);
+
+        // Email data
+        const data = { user: { firstname: user.firstname }, activationCode };
+
+        // Send email with reset code
+        await sendEmail({
+            email: user.email,
+            subject: "Password Reset Request",
+            template: "password-reset.ejs",
+            data,
+        });
+
+        res.status(200).json({
+            success: true,
+            message: `A password reset code has been sent to ${user.email}`,
+            resetToken: token,
+        });
+
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+});
+
+
+// Function to create a reset token with activation code
+export const createResetPasswordToken = (user: IUser): IActivationToken => {
+    // Generate a random 4-digit code
+    const activationCode = Math.floor(1000 + Math.random() * 9000).toString();
+
+    // Set token expiration time (e.g., 30 minutes)
+    const expiresInSeconds = 30 * 60; // 30 minutes
+    const expirationTimestamp = Math.floor(Date.now() / 1000) + expiresInSeconds;
+
+    // Create a reset JWT token with expiration
+    const token = jwt.sign(
+        { user: { id: user._id }, activationCode, exp: expirationTimestamp },
+        RESET_PASSWORD_SECRET as Secret,
+        { expiresIn: expiresInSeconds }
+    );
+
+    return { token, activationCode, expirationTimestamp };
+};
+
+
+// reset password handler
+export const resetPassword = CatchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+    const { token, activationCode, newPassword } = req.body;
+
+    try {
+        // Decode the JWT and get the user ID and code
+        const decoded = jwt.verify(token, RESET_PASSWORD_SECRET as string) as { user: { id: string }; activationCode: string };
+
+        if (decoded.activationCode !== activationCode) {
+            return next(new ErrorHandler("Invalid reset code", 400));
+        }
+
+        // Find the user by ID
+        const user = await userModel.findById(decoded.user.id);
+        if (!user) {
+            return next(new ErrorHandler("User not found", 404));
+        }
+
+        // Update the password
+        user.password = await bcrypt.hash(newPassword, 10);
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Password has been reset successfully",
+        });
+
+    } catch (error: any) {
+        if (error.name === 'TokenExpiredError') {
+            return next(new ErrorHandler("Reset token has expired", 400));
+        } else if (error.name === 'JsonWebTokenError') {
+            return next(new ErrorHandler("Invalid reset token", 400));
+        }
+        return next(new ErrorHandler("Password reset failed", 500));
+    }
+});
+
+
+// get user infor handler
+export const getUserInfo = CatchAsyncErrors(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        let userId: string;
+
+        // Check for access token in cookies
+        const accessToken = req.cookies.access_token;
+
+        if (accessToken) {
+            try {
+                // Attempt to verify the access token
+                const decoded = jwt.verify(accessToken, ACCESS_TOKEN as string) as JwtPayload;
+                userId = decoded.id;
+            } catch (error: any) {
+                if (error.name === 'TokenExpiredError') {
+                    // Attempt to refresh the token
+                    updateAccessToken(req, res, next);
+                    // Check if the token refresh was successful
+                    if (req.user) {
+                        userId = String(req.user._id);
+                    } else {
+                        return next(new ErrorHandler("Session expired. Please log in again.", 401));
+                    }
+                } else {
+                    return next(new ErrorHandler("Invalid token. Please log in again.", 401));
+                }
+            }
+        } else {
+            return next(new ErrorHandler("No access token found. Please log in.", 401));
+        }
+
+        if (!userId) {
+            return next(new ErrorHandler("User not authenticated", 401));
+        }
+
+        // Retrieve user details from Redis or database
+        const userSession = await redis.get(userId);
+
+        if (userSession) {
+            const userDetails = JSON.parse(userSession);
+            res.status(200).json({
+                success: true,
+                message: "User retrieved successfully",
+                user: userDetails
+            });
+        } else {
+            await getUserById(userId, res);
+        }
+    } catch (err: any) {
+        return next(new ErrorHandler(err.message, 400));
+    }
+});
+
+// Update access token handler
+export const updateAccessToken = CatchAsyncErrors(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const refresh_token = req.cookies.refresh_token as string;
+        // const refresh_token = req.headers["refresh-token"] as string;
+
+        const decoded = jwt.verify(refresh_token, REFRESH_TOKEN as string) as JwtPayload;
+        const message = "Couldn't refresh token";
+
+        if (!decoded) {
+            return next(new ErrorHandler(message, 400));
+        }
+
+        const session = await redis.get(decoded.id);
+
+        if (!session) {
+            return next(new ErrorHandler("Please login to access this resource", 400));
+        }
+
+        const user = JSON.parse(session);
+
+        const accessToken = jwt.sign({ id: user._id }, ACCESS_TOKEN as string, {
+            expiresIn: "24h",
+        });
+
+        const refreshToken = jwt.sign({ id: user._id }, REFRESH_TOKEN as string, {
+            expiresIn: "14d",
+        });
+
+        // If called within a middleware, continue the request
+        if (next) {
+            req.user = user;
+            return next();
+        }
+        res.cookie("access_token", accessToken, accessTokenOptions);
+        res.cookie("refresh_token", refreshToken, refreshTokenOptions);
+
+        await setCache(user?.id, user, 604800);
+
+        res.status(200).json({
+            success: true,
+            accessToken,
+        });
+    } catch (err: any) {
+        return next(new ErrorHandler("Authorization failed", 500));
+    }
+});

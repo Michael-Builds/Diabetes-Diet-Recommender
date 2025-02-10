@@ -1,3 +1,4 @@
+import { Request } from "express";
 import { Document } from "mongoose";
 
 export interface IUser extends Document {
@@ -37,8 +38,9 @@ export interface IUser extends Document {
 export interface IActivationToken {
     token: string;
     activationCode: string;
-    expirationTimestamp: any
+    expirationTimestamp: number; 
 }
+
 
 
 export interface IActivationRequest {
@@ -50,4 +52,10 @@ export interface IActivationRequest {
 export interface ILoginRequest {
     email: string;
     password: string;
+}
+
+
+
+export interface AuthenticatedRequest extends Request {
+    user?: IUser;
 }
