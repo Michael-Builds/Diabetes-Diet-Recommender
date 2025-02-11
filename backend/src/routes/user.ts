@@ -6,6 +6,7 @@ import {
     getUserInfo,
     resendActivationCode,
     resetPassword,
+    updateAccessToken,
     updateUserCustomizations,
     updateUserHealthDetails,
     updateUserProfile,
@@ -25,6 +26,7 @@ userRouter.post("/resend-activation", resendActivationCode);
 userRouter.post("/login", userLogin);
 userRouter.post("/forgot-password", forgotPassword);
 userRouter.post("/reset-password", resetPassword);
+userRouter.get("/refresh-token", updateAccessToken);
 
 // Authenticated User Routes
 userRouter.get("/logout", isAuthenticated, userLogout);

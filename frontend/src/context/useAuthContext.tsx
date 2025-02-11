@@ -1,12 +1,7 @@
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AuthContextType, AuthResponse, LoginCredentials, User } from "../interfaces";
-
-const API_ENDPOINTS = {
-    login: 'login_url',
-    logout: 'logout_url',
-    refresh: 'token_refresh_url',
-} as const;
+import { login_url, logout_url, refresh_token_url } from "../endpoints";
 
 // Enhanced state interface
 interface AuthState {
@@ -89,7 +84,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const refresh = useCallback(async (): Promise<AuthResponse> => {
         try {
             updateState({ isLoading: true, error: null });
-            const response = await axios.get<AuthResponse>(API_ENDPOINTS.refresh);
+            const response = await axios.get<AuthResponse>(refresh_token_url);
 
             updateState({
                 token: response.data.access_token,
@@ -111,7 +106,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const login = useCallback(async (credentials: LoginCredentials): Promise<AuthResponse> => {
         try {
             updateState({ isLoading: true, error: null });
-            const response = await axios.post<AuthResponse>(API_ENDPOINTS.login, credentials);
+            const response = await axios.post<AuthResponse>(login_url, credentials);
 
             updateState({
                 user: response.data.user,
@@ -134,7 +129,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const logout = useCallback(async (): Promise<void> => {
         try {
             updateState({ isLoading: true, error: null });
-            await axios.post(API_ENDPOINTS.logout);
+            await axios.post(logout_url);
         } catch (error) {
             console.error('Logout error:', error);
         } finally {
