@@ -1,8 +1,8 @@
-# 🥗 Smart Diabetes Diet Recommender
+# 🥗 Diabetes Diet Recommender
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
-**🩺 About the Project** Smart Diabetes Diet Recommender is a full-stack AI-powered dietary recommendation system designed to help diabetic patients manage their nutrition effectively. This application generates personalized meal plans, tracks nutritional intake, and provides insights into dietary habits.
+**🩺 About the Project** Diabetes Diet Recommender is a full-stack AI-powered dietary recommendation system designed to help diabetic patients manage their nutrition effectively. This application generates personalized meal plans, tracks nutritional intake, and provides insights into dietary habits.
 
 Developed with React for the frontend, Node.js with Express for the backend, MongoDB for data storage, and Tailwind CSS for a responsive UI, this project aims to simplify healthy eating for individuals managing diabetes.
 
