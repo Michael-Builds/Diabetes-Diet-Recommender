@@ -207,10 +207,15 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
       }
     },
-    "get-recommendations/{userId}": {
+    "/get-recommendations/{userId}": {
       "get": {
         "description": "",
         "parameters": [
@@ -225,7 +230,12 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
       }
     }
   }

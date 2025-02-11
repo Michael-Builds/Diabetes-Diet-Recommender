@@ -37,6 +37,6 @@ userRouter.put("/update-customizations", isAuthenticated, updateUserCustomizatio
 
 // Generate recommendations for the next 30 days
 userRouter.post("/generate-recommendations/:userId", isAuthenticated, generateMonthlyRecommendations);
-userRouter.get("get-recommendations/:userId", isAuthenticated, getUserRecommendations);
+userRouter.get("/get-recommendations/:userId", isAuthenticated, getUserRecommendations);
 
 export default userRouter;

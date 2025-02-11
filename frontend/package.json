@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.0",
+    "@heroicons/react": "^2.2.0",
     "@react-spring/web": "^9.7.5",
     "@tailwindcss/line-clamp": "^0.4.4",
     "react": "^19.0.0",
