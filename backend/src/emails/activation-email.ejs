@@ -64,6 +64,16 @@
         padding: 20px;
       }
 
+      .code {
+        font-size: 26px;
+        font-weight: bold;
+        background-color: #f3f3f3;
+        padding: 10px;
+        border-radius: 4px;
+        display: inline-block;
+        margin: 10px 0;
+      }
+
       .button {
         display: inline-block;
         background-color: #0070f3;
@@ -88,7 +98,7 @@
           Thank you for registering with DiaNutri. To activate your account,
           please use the following activation code:
         </p>
-        <h2><%= activationCode %></h2>
+        <div class="code"><%= activationCode %></div>
         <p>
           This code will expire in
           <strong><%= timeRemaining %></strong> minutes.
@@ -102,7 +112,7 @@
       <div class="email-footer">
         <p>
           If you have any questions, please do not hesitate to contact us at
-          <a href="mailto:michaelkpantiramp@gmail.com">support@info.com</a>.
+          <a href="mailto:michaelkpanti@gmail.com.com">dianutrisupport@info.com</a>.
         </p>
       </div>
     </div>

@@ -110,7 +110,7 @@ export const generateWeeklyRecommendations = CatchAsyncErrors(
             userId: user._id,
             recommendationId,
             date: new Date(),
-            meals: structuredMeals // ✅ Save meals correctly in object format
+            meals: structuredMeals
         });
 
         // Populate meal details for the response
