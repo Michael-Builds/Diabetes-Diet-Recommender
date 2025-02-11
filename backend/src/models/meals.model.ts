@@ -19,20 +19,63 @@ export interface IMeal extends Document {
 
 const MealSchema: Schema = new mongoose.Schema(
     {
-        name: { type: String, required: true },
-        type: { type: String, enum: ["breakfast", "lunch", "dinner"], required: true },
-        ingredients: { type: [String], default: [] },
-        dietTypes: { type: [String], default: [] },
-        calories: { type: Number, required: true },
-        protein: { type: Number, required: true },
-        carbs: { type: Number, required: true },
-        fat: { type: Number, required: true },
-        glycemicIndex: { type: Number, required: true },
-        fiber: { type: Number, required: true },
-        sodium: { type: Number, required: true },
-        potassium: { type: Number, required: true },
-        magnesium: { type: Number, required: true },
-        calcium: { type: Number, required: true },
+        name: {
+            type: String,
+            required: true
+        },
+        type: {
+            type: String,
+            enum: ["breakfast", "lunch", "dinner"],
+            required: true
+        },
+        ingredients: {
+            type: [String],
+            default: []
+        },
+        dietTypes: {
+            type: [String],
+            default: []
+        },
+        calories: {
+            type: Number,
+            required: true
+        },
+        protein: {
+            type: Number,
+            required: true
+        },
+        carbs: {
+            type: Number,
+            required: true
+        },
+        fat: {
+            type: Number,
+            required: true
+        },
+        glycemicIndex: {
+            type: Number,
+            required: true
+        },
+        fiber: {
+            type: Number,
+            required: true
+        },
+        sodium: {
+            type: Number,
+            required: true
+        },
+        potassium: {
+            type: Number,
+            required: true
+        },
+        magnesium: {
+            type: Number,
+            required: true
+        },
+        calcium: {
+            type: Number,
+            required: true
+        },
     },
     { timestamps: true }
 );

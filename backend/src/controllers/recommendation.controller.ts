@@ -6,6 +6,7 @@ import { generateDailyMeals } from "../utils/mealGenerator";
 import recommendationModel from "../models/recommendation.model";
 import notificationModel from "../models/notification.model";
 import sendEmail from "../utils/sendEmail";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * Check if user has preferences set before generating recommendations
@@ -25,9 +26,9 @@ const isUserPreferencesSet = (user: any): boolean => {
 };
 
 /**
- * Generate 30-day meal plan for a user & notify them via email & in-app notification
+ * Generate 7-day meal plan for a user & notify them via email & in-app notification
  */
-export const generateMonthlyRecommendations = CatchAsyncErrors(
+export const generateWeeklyRecommendations = CatchAsyncErrors(
     async (req: Request, res: Response, next: NextFunction) => {
         const { userId } = req.params;
 
@@ -35,56 +36,105 @@ export const generateMonthlyRecommendations = CatchAsyncErrors(
         if (!user) return next(new ErrorHandler("User not found", 404));
 
         if (!isUserPreferencesSet(user)) {
-            return next(
-                new ErrorHandler(
-                    "Please update your health details and dietary preferences before generating recommendations.",
-                    400
-                )
-            );
+            return next(new ErrorHandler(
+                "Please update your health details and dietary preferences before generating recommendations.",
+                400
+            ));
         }
 
         const dietaryPreferences = user.diatery_preferences?.preferred_diet_type
             ? [user.diatery_preferences.preferred_diet_type, ...user.diatery_preferences.foods_to_avoid]
             : ["diabetic"];
 
-        // **Check existing recommendations and enforce the limit of 3**
+        // Check existing recommendations limit
         const existingRecommendations = await recommendationModel.find({ userId });
         if (existingRecommendations.length >= 3) {
-            return res.json({ message: "Maximum limit reached: You can have up to 3 active recommendations." });
+            return res.status(400).json({
+                success: false,
+                message: "Maximum limit reached: You can have up to 3 active recommendations."
+            });
         }
 
-        const recommendations = [];
+        const recommendationId = uuidv4();
+        const structuredMeals: Record<string, any> = {};
 
-        for (let i = 0; i < 30; i++) {
-            const dailyMeals = await generateDailyMeals(dietaryPreferences, i);
-            if (!dailyMeals || !dailyMeals.breakfast.length || !dailyMeals.lunch.length || !dailyMeals.dinner.length) {
-                console.warn(`⚠️ Skipping day ${i + 1} due to missing meals in dataset.`);
+        // Generate meals for 7 days
+        for (let i = 0; i < 7; i++) {
+            const currentDate = new Date();
+            currentDate.setDate(currentDate.getDate() + i);
+            const dayKey = `day${i + 1}`;
+
+            const dailyMeals = await generateDailyMeals(dietaryPreferences, i, {
+                strict: true,
+                minCalories: 300,
+                maxCalories: 800
+            });
+
+            if (!dailyMeals ||
+                !dailyMeals.breakfast.length ||
+                !dailyMeals.lunch.length ||
+                !dailyMeals.dinner.length) {
+                console.warn(`⚠️ Skipping ${dayKey} due to missing meals`);
                 continue;
             }
 
-            const recommendation = await recommendationModel.create({
-                userId: user._id,
-                date: new Date(new Date().setDate(new Date().getDate() + i)),
-                meals: [
-                    { type: "breakfast", mealId: dailyMeals.breakfast.map(meal => meal._id) },
-                    { type: "lunch", mealId: dailyMeals.lunch.map(meal => meal._id) },
-                    { type: "dinner", mealId: dailyMeals.dinner.map(meal => meal._id) },
-                ],
-            });
-
-            recommendations.push(recommendation);
+            // Store meals correctly under the `dayX` key
+            structuredMeals[dayKey] = {
+                breakfast: {
+                    date: currentDate,
+                    type: "breakfast",
+                    mealId: dailyMeals.breakfast[0]._id,
+                    mealName: dailyMeals.breakfast[0].name
+                },
+                lunch: {
+                    date: currentDate,
+                    type: "lunch",
+                    mealId: dailyMeals.lunch[0]._id,
+                    mealName: dailyMeals.lunch[0].name
+                },
+                dinner: {
+                    date: currentDate,
+                    type: "dinner",
+                    mealId: dailyMeals.dinner[0]._id,
+                    mealName: dailyMeals.dinner[0].name
+                }
+            };
         }
 
-        // **Create a notification**
-        await notificationModel.create({
+        if (Object.keys(structuredMeals).length === 0) {
+            return next(new ErrorHandler("Failed to generate meal plan: No valid meals found", 400));
+        }
+
+        // Save to database
+        const recommendation = await recommendationModel.create({
             userId: user._id,
-            title: "New Monthly Meal Plan",
-            message: `Your meal recommendations for the next 30 days have been successfully generated!`,
+            recommendationId,
+            date: new Date(),
+            meals: structuredMeals // ✅ Save meals correctly in object format
         });
 
+        // Populate meal details for the response
+        const populatedRecommendation = await recommendationModel
+            .findById(recommendation._id)
+            .populate('meals.day1.breakfast.mealId meals.day1.lunch.mealId meals.day1.dinner.mealId')
+            .populate('meals.day2.breakfast.mealId meals.day2.lunch.mealId meals.day2.dinner.mealId')
+            .populate('meals.day3.breakfast.mealId meals.day3.lunch.mealId meals.day3.dinner.mealId')
+            .populate('meals.day4.breakfast.mealId meals.day4.lunch.mealId meals.day4.dinner.mealId')
+            .populate('meals.day5.breakfast.mealId meals.day5.lunch.mealId meals.day5.dinner.mealId')
+            .populate('meals.day6.breakfast.mealId meals.day6.lunch.mealId meals.day6.dinner.mealId')
+            .populate('meals.day7.breakfast.mealId meals.day7.lunch.mealId meals.day7.dinner.mealId');
+
+        // Create notification
+        await notificationModel.create({
+            userId: user._id,
+            title: "New Weekly Meal Plan",
+            message: `Your meal recommendations for the next 7 days have been successfully generated!`,
+        });
+
+        // Send email notification
         await sendEmail({
             email: user.email,
-            subject: "Your Monthly Meal Plan is Ready!",
+            subject: "Your Weekly Meal Plan is Ready!",
             template: "meal-plan-notification.ejs",
             data: {
                 firstname: user.firstname,
@@ -93,7 +143,11 @@ export const generateMonthlyRecommendations = CatchAsyncErrors(
             },
         });
 
-        res.json({ message: "✅ Monthly diet plan generated successfully!", recommendations });
+        res.status(200).json({
+            success: true,
+            message: "Weekly diet plan generated successfully!",
+            recommendation: populatedRecommendation
+        });
     }
 );
 
@@ -107,20 +161,52 @@ export const getUserRecommendations = CatchAsyncErrors(
     async (req: Request, res: Response, next: NextFunction) => {
         const { userId } = req.params;
 
-        // **Fully populate meal data**
-        const recommendations = await recommendationModel
-            .find({ userId })
-            .populate({
-                path: "meals.mealId",
-                select: "name type ingredients calories protein carbs fat glycemicIndex fiber sodium potassium magnesium calcium"
-            })
-            .sort({ date: 1 });
+        // Fetch the recommendation and populate meals
+        const recommendation = await recommendationModel.findOne({ userId });
 
-        if (!recommendations.length) {
+        if (!recommendation) {
             return next(new ErrorHandler("No recommendations found", 404));
         }
 
-        res.json({ success: true, recommendations });
+        // **Populate meal details properly**
+        const populatedRecommendation = await recommendationModel.findById(recommendation._id)
+            .populate("meals.day1.breakfast.mealId meals.day1.lunch.mealId meals.day1.dinner.mealId")
+            .populate("meals.day2.breakfast.mealId meals.day2.lunch.mealId meals.day2.dinner.mealId")
+            .populate("meals.day3.breakfast.mealId meals.day3.lunch.mealId meals.day3.dinner.mealId")
+            .populate("meals.day4.breakfast.mealId meals.day4.lunch.mealId meals.day4.dinner.mealId")
+            .populate("meals.day5.breakfast.mealId meals.day5.lunch.mealId meals.day5.dinner.mealId")
+            .populate("meals.day6.breakfast.mealId meals.day6.lunch.mealId meals.day6.dinner.mealId")
+            .populate("meals.day7.breakfast.mealId meals.day7.lunch.mealId meals.day7.dinner.mealId");
+
+        if (!populatedRecommendation) {
+            return next(new ErrorHandler("Failed to retrieve meal details", 500));
+        }
+
+        // Convert the populated meals from a Map to an Object
+        const mealsObject = populatedRecommendation.meals instanceof Map
+            ? Object.fromEntries(populatedRecommendation.meals)
+            : populatedRecommendation.meals;
+
+        // **Construct structured response**
+        const groupedMeals: Record<string, any> = {};
+
+        for (let i = 1; i <= 7; i++) {
+            const dayKey = `day${i}`;
+            if (mealsObject[dayKey]) {
+                groupedMeals[dayKey] = {
+                    breakfast: mealsObject[dayKey]?.breakfast?.mealId || null,
+                    lunch: mealsObject[dayKey]?.lunch?.mealId || null,
+                    dinner: mealsObject[dayKey]?.dinner?.mealId || null
+                };
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            recommendationId: populatedRecommendation.recommendationId,
+            meals: groupedMeals
+        });
     }
 );
+
 

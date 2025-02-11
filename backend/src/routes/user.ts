@@ -1,4 +1,6 @@
 import express from "express";
+import { getUserNotifications, updateNotificationStatus } from "../controllers/notification.controller";
+import { generateWeeklyRecommendations, getUserRecommendations } from "../controllers/recommendation.controller";
 import {
     accountRegister,
     activateAccount,
@@ -14,8 +16,6 @@ import {
     userLogout
 } from "../controllers/user.controller";
 import { isAuthenticated } from "../middlewares/auth.middleware";
-import { getUserNotifications, updateNotificationStatus } from "../controllers/notification.controller";
-import { generateMonthlyRecommendations, getUserRecommendations } from "../controllers/recommendation.controller";
 
 const userRouter = express.Router();
 
@@ -38,7 +38,7 @@ userRouter.put("/update-health-details", isAuthenticated, updateUserHealthDetail
 userRouter.put("/update-customizations", isAuthenticated, updateUserCustomizations);
 
 // Generate recommendations for the next 30 days
-userRouter.post("/generate-recommendations/:userId", isAuthenticated, generateMonthlyRecommendations);
+userRouter.post("/generate-recommendations/:userId", isAuthenticated, generateWeeklyRecommendations);
 userRouter.get("/get-recommendations/:userId", isAuthenticated, getUserRecommendations);
 
 export default userRouter;
