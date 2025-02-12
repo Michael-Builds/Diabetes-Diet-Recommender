@@ -114,6 +114,13 @@ export const generateWeeklyRecommendations = CatchAsyncErrors(
             meals: structuredMeals
         });
 
+        // Create a notification for the user
+        await notificationModel.create({
+            userId: String(user._id),
+            title: "New Monthly Meal Plan",
+            message: `Your meal recommendations for the next 7 days have been successfully generated!`,
+        });
+
         // Populate meal details for the response
         const populatedRecommendation = await recommendationModel
             .findById(recommendation._id)
