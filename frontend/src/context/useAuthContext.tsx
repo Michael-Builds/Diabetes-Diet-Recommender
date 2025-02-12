@@ -3,8 +3,6 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { login_url, logout_url, refresh_token_url } from "../endpoints";
 import { AuthResponse, AuthState, EnhancedAuthContextType, initialState, LoginCredentials, User } from "../interfaces";
 
-
-
 const AuthContext = createContext<EnhancedAuthContextType | undefined>(undefined);
 
 let isRefreshing = false;
@@ -82,6 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [updateState]);
 
+
     const login = useCallback(async (credentials: LoginCredentials): Promise<AuthResponse> => {
         try {
             updateState({ isLoading: true, error: null });
@@ -105,6 +104,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [updateState]);
 
+
     const logout = useCallback(async (): Promise<void> => {
         try {
             updateState({ isLoading: true, error: null });
@@ -122,6 +122,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             localStorage.clear();
         }
     }, [updateState]);
+
 
     useEffect(() => {
         const interceptor = axios.interceptors.response.use(
@@ -161,6 +162,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             axios.interceptors.response.eject(interceptor);
         };
     }, [refresh, logout]);
+
 
     const contextValue = useMemo(
         () => ({

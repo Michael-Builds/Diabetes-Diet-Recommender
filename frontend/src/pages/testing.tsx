@@ -8,7 +8,7 @@ import Modal from "../shared/Modal";
 import RadioButton from "../shared/RadioButton";
 import Toggle from "../shared/Toggle";
 
-const Splash = () => {
+const Testing = () => {
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -176,4 +176,4 @@ const Splash = () => {
     )
 };
 
-export default Splash;
+export default Testing;

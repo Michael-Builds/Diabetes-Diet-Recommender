@@ -8,6 +8,8 @@ const Login = () => {
     //     try {
     //         await login(credentials);
     //     } catch (error) {
+    // }
+    // }
     return (
         <section className="h-screen flex items-center justify-center bg-gray-900 text-white">
             <p>Login Page</p>

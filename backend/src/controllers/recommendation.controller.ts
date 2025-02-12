@@ -7,6 +7,7 @@ import recommendationModel from "../models/recommendation.model";
 import notificationModel from "../models/notification.model";
 import sendEmail from "../utils/sendEmail";
 import { v4 as uuidv4 } from "uuid";
+import { redis } from "../utils/redis";
 
 /**
  * Check if user has preferences set before generating recommendations
@@ -42,11 +43,16 @@ export const generateWeeklyRecommendations = CatchAsyncErrors(
             ));
         }
 
+        // **Check Redis Cache First**
+        const cachedRecommendation = await redis.get(`recommendations:${user._id}`);
+        if (cachedRecommendation) {
+            return res.status(200).json(JSON.parse(cachedRecommendation));
+        }
+
         const dietaryPreferences = user.diatery_preferences?.preferred_diet_type
             ? [user.diatery_preferences.preferred_diet_type, ...user.diatery_preferences.foods_to_avoid]
             : ["diabetic"];
 
-        // Check existing recommendations limit
         const existingRecommendations = await recommendationModel.find({ userId });
         if (existingRecommendations.length >= 3) {
             return res.status(400).json({
@@ -58,7 +64,6 @@ export const generateWeeklyRecommendations = CatchAsyncErrors(
         const recommendationId = uuidv4();
         const structuredMeals: Record<string, any> = {};
 
-        // Generate meals for 7 days
         for (let i = 0; i < 7; i++) {
             const currentDate = new Date();
             currentDate.setDate(currentDate.getDate() + i);
@@ -70,15 +75,11 @@ export const generateWeeklyRecommendations = CatchAsyncErrors(
                 maxCalories: 800
             });
 
-            if (!dailyMeals ||
-                !dailyMeals.breakfast.length ||
-                !dailyMeals.lunch.length ||
-                !dailyMeals.dinner.length) {
+            if (!dailyMeals || !dailyMeals.breakfast.length || !dailyMeals.lunch.length || !dailyMeals.dinner.length) {
                 console.warn(`⚠️ Skipping ${dayKey} due to missing meals`);
                 continue;
             }
 
-            // Store meals correctly under the `dayX` key
             structuredMeals[dayKey] = {
                 breakfast: {
                     date: currentDate,
@@ -116,32 +117,16 @@ export const generateWeeklyRecommendations = CatchAsyncErrors(
         // Populate meal details for the response
         const populatedRecommendation = await recommendationModel
             .findById(recommendation._id)
-            .populate('meals.day1.breakfast.mealId meals.day1.lunch.mealId meals.day1.dinner.mealId')
-            .populate('meals.day2.breakfast.mealId meals.day2.lunch.mealId meals.day2.dinner.mealId')
-            .populate('meals.day3.breakfast.mealId meals.day3.lunch.mealId meals.day3.dinner.mealId')
-            .populate('meals.day4.breakfast.mealId meals.day4.lunch.mealId meals.day4.dinner.mealId')
-            .populate('meals.day5.breakfast.mealId meals.day5.lunch.mealId meals.day5.dinner.mealId')
-            .populate('meals.day6.breakfast.mealId meals.day6.lunch.mealId meals.day6.dinner.mealId')
-            .populate('meals.day7.breakfast.mealId meals.day7.lunch.mealId meals.day7.dinner.mealId');
+            .populate("meals.day1.breakfast.mealId meals.day1.lunch.mealId meals.day1.dinner.mealId")
+            .populate("meals.day2.breakfast.mealId meals.day2.lunch.mealId meals.day2.dinner.mealId")
+            .populate("meals.day3.breakfast.mealId meals.day3.lunch.mealId meals.day3.dinner.mealId")
+            .populate("meals.day4.breakfast.mealId meals.day4.lunch.mealId meals.day4.dinner.mealId")
+            .populate("meals.day5.breakfast.mealId meals.day5.lunch.mealId meals.day5.dinner.mealId")
+            .populate("meals.day6.breakfast.mealId meals.day6.lunch.mealId meals.day6.dinner.mealId")
+            .populate("meals.day7.breakfast.mealId meals.day7.lunch.mealId meals.day7.dinner.mealId");
 
-        // Create notification
-        await notificationModel.create({
-            userId: user._id,
-            title: "New Weekly Meal Plan",
-            message: `Your meal recommendations for the next 7 days have been successfully generated!`,
-        });
-
-        // Send email notification
-        await sendEmail({
-            email: user.email,
-            subject: "Your Weekly Meal Plan is Ready!",
-            template: "meal-plan-notification.ejs",
-            data: {
-                firstname: user.firstname,
-                dietaryPreferences: dietaryPreferences.join(", "),
-                startDate: new Date().toLocaleDateString(),
-            },
-        });
+        // **Store in Redis for 7 days**
+        await redis.set(`recommendations:${user.email}`, JSON.stringify(populatedRecommendation), "EX", 60 * 60 * 24 * 7);
 
         res.status(200).json({
             success: true,
@@ -152,7 +137,6 @@ export const generateWeeklyRecommendations = CatchAsyncErrors(
 );
 
 
-
 /**
  * Retrieve recommendations for a specific user
  */
@@ -161,14 +145,20 @@ export const getUserRecommendations = CatchAsyncErrors(
     async (req: Request, res: Response, next: NextFunction) => {
         const { userId } = req.params;
 
-        // Fetch the recommendation and populate meals
+        // **Check Redis Cache First**
+        const cachedRecommendation = await redis.get(`recommendations:${userId}`);
+        if (cachedRecommendation) {
+            console.log("📌 Returning Cached Recommendation from Redis");
+            return res.status(200).json(JSON.parse(cachedRecommendation));
+        }
+
+        // **If not in Redis, Fetch from MongoDB**
         const recommendation = await recommendationModel.findOne({ userId });
 
         if (!recommendation) {
             return next(new ErrorHandler("No recommendations found", 404));
         }
 
-        // **Populate meal details properly**
         const populatedRecommendation = await recommendationModel.findById(recommendation._id)
             .populate("meals.day1.breakfast.mealId meals.day1.lunch.mealId meals.day1.dinner.mealId")
             .populate("meals.day2.breakfast.mealId meals.day2.lunch.mealId meals.day2.dinner.mealId")
@@ -178,35 +168,22 @@ export const getUserRecommendations = CatchAsyncErrors(
             .populate("meals.day6.breakfast.mealId meals.day6.lunch.mealId meals.day6.dinner.mealId")
             .populate("meals.day7.breakfast.mealId meals.day7.lunch.mealId meals.day7.dinner.mealId");
 
+        // ✅ Ensure `populatedRecommendation` is not null
         if (!populatedRecommendation) {
             return next(new ErrorHandler("Failed to retrieve meal details", 500));
         }
 
-        // Convert the populated meals from a Map to an Object
-        const mealsObject = populatedRecommendation.meals instanceof Map
-            ? Object.fromEntries(populatedRecommendation.meals)
-            : populatedRecommendation.meals;
-
-        // **Construct structured response**
-        const groupedMeals: Record<string, any> = {};
-
-        for (let i = 1; i <= 7; i++) {
-            const dayKey = `day${i}`;
-            if (mealsObject[dayKey]) {
-                groupedMeals[dayKey] = {
-                    breakfast: mealsObject[dayKey]?.breakfast?.mealId || null,
-                    lunch: mealsObject[dayKey]?.lunch?.mealId || null,
-                    dinner: mealsObject[dayKey]?.dinner?.mealId || null
-                };
-            }
-        }
+        // **Store in Redis for 7 days**
+        await redis.set(`recommendations:${userId}`, JSON.stringify(populatedRecommendation), "EX", 60 * 60 * 24 * 7);
 
         res.status(200).json({
             success: true,
             recommendationId: populatedRecommendation.recommendationId,
-            meals: groupedMeals
+            meals: populatedRecommendation.meals,
         });
     }
 );
+
+
 
 
