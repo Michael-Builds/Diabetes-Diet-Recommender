@@ -3,15 +3,14 @@ import { NextFunction, Request, Response } from "express";
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 import { ACCESS_TOKEN, ACTIVATION_SECRET, REFRESH_TOKEN, RESET_PASSWORD_SECRET } from "../config";
 import { AuthenticatedRequest, IActivationRequest, IActivationToken, ILoginRequest, IUser } from "../interfaces/user.interface";
+import notificationModel from '../models/notification.model';
 import userModel from "../models/user";
-import { getUserById } from '../services/user.services';
 import { clearCache, setCache } from '../utils/catche.management';
 import ErrorHandler from "../utils/ErrorHandler";
 import { accessTokenOptions, refreshTokenOptions, sendToken } from '../utils/jwt';
 import { redis } from '../utils/redis';
 import sendEmail from "../utils/sendEmail";
 import { CatchAsyncErrors } from './../middlewares/catchAsyncError';
-import notificationModel from '../models/notification.model';
 
 // Validate password strength
 export const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;

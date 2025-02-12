@@ -1,30 +1,9 @@
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { AuthContextType, AuthResponse, LoginCredentials, User } from "../interfaces";
 import { login_url, logout_url, refresh_token_url } from "../endpoints";
+import { AuthResponse, AuthState, EnhancedAuthContextType, initialState, LoginCredentials, User } from "../interfaces";
 
-// Enhanced state interface
-interface AuthState {
-    user: User | null;
-    token: string | null;
-    refreshToken: string | null;
-    isLoading: boolean;
-    error: string | null;
-}
 
-// Enhanced context type
-interface EnhancedAuthContextType extends AuthContextType {
-    isLoading: boolean;
-    error: string | null;
-}
-
-const initialState: AuthState = {
-    user: JSON.parse(localStorage.getItem('user') || 'null'),
-    token: localStorage.getItem('token'),
-    refreshToken: localStorage.getItem('refreshToken'),
-    isLoading: false,
-    error: null,
-};
 
 const AuthContext = createContext<EnhancedAuthContextType | undefined>(undefined);
 

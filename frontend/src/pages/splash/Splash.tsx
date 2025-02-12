@@ -1,10 +1,12 @@
 
 const Splash = () => {
+
   return (
-    <section className="h-screen flex items-center justify-center bg-blue-600 text-white text-3xl font-bold">
-      <p>Hello, Welcome to DiaNutri</p>
+    <section className="h-screen text-white bg-blue-600 font-geist flex items-center justify-center font-bold">
+  
+      Welcome to DiaNutri
     </section>
-  );
+  )
 };
 
 export default Splash;

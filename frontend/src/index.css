@@ -5,3 +5,40 @@
 @import "tailwindcss/utilities";
 
 
+/* 📌 Apply custom font family & improve UI */
+.react-datepicker {
+    font-family: 'Geist', sans-serif !important;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* 📌 Change the calendar header (Month & Year) */
+.react-datepicker__header {
+    background-color: #f9fafb;
+    color: #494949;
+    font-weight: 500;
+    padding: 10px;
+}
+
+/* 📌 Style the selected date */
+.react-datepicker__day--selected {
+    background-color: #2563eb !important;
+    color: white !important;
+    border-radius: 5px;
+}
+
+.react-datepicker__day--selected:hover {
+    color: white !important;
+}
+
+/* 📌 Style hover effect on dates */
+.react-datepicker__day:hover {
+    background-color: #e5e7eb;
+    border-radius: 5px;
+}
+
+/* 📌 Style navigation arrows */
+.react-datepicker__navigation {
+    top: 5px !important;
+}
