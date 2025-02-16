@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { login_url, logout_url, refresh_token_url } from "../endpoints";
+import { get_notifications_url, login_url, logout_url, refresh_token_url, update_profile_url } from "../endpoints";
 import { AuthResponse, AuthState, EnhancedAuthContextType, initialState, LoginCredentials, User } from "../interfaces";
 
 const AuthContext = createContext<EnhancedAuthContextType | undefined>(undefined);
@@ -13,7 +13,11 @@ let failedQueue: Array<{
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [state, setState] = useState<AuthState>(initialState);
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [isNotifLoading, setIsNotifLoading] = useState<boolean>(false);
+    const [notifError, setNotifError] = useState<string | null>(null);
 
+    // Function to process failed requests when refreshing tokens
     const processQueue = (error: Error | null, token: string | null = null) => {
         failedQueue.forEach(prom => {
             if (error) {
@@ -25,11 +29,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         failedQueue = [];
     };
 
+    // Function to update AuthState globally
     const updateState = useCallback((updates: Partial<AuthState>) => {
         setState(prev => {
             const newState = { ...prev, ...updates };
 
-            // Handle token updates
             if ('token' in updates) {
                 if (updates.token) {
                     localStorage.setItem('token', updates.token);
@@ -40,14 +44,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 }
             }
 
-            // Handle refresh token updates
             if ('refreshToken' in updates) {
                 updates.refreshToken
                     ? localStorage.setItem('refreshToken', updates.refreshToken)
                     : localStorage.removeItem('refreshToken');
             }
 
-            // Handle user updates
             if ('user' in updates) {
                 updates.user
                     ? localStorage.setItem('user', JSON.stringify(updates.user))
@@ -58,6 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
     }, []);
 
+    // Refresh Token
     const refresh = useCallback(async (): Promise<AuthResponse> => {
         try {
             updateState({ isLoading: true, error: null });
@@ -80,7 +83,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [updateState]);
 
-
+    // Login Function
     const login = useCallback(async (credentials: LoginCredentials): Promise<AuthResponse> => {
         try {
             updateState({ isLoading: true, error: null });
@@ -104,7 +107,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [updateState]);
 
-
+    // Logout Function
     const logout = useCallback(async (): Promise<void> => {
         try {
             updateState({ isLoading: true, error: null });
@@ -123,7 +126,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [updateState]);
 
+    // Fetch Notifications
+    const fetchNotifications = useCallback(async () => {
+        setIsNotifLoading(true);
+        setNotifError(null);
+        try {
+            const response = await axios.get(get_notifications_url);
+            setNotifications(response.data);
+        } catch (error) {
+            setNotifError("Failed to fetch notifications");
+        } finally {
+            setIsNotifLoading(false);
+        }
+    }, []);
 
+    // Fetch Notifications on Mount
+    useEffect(() => {
+        fetchNotifications();
+    }, [fetchNotifications]);
+
+    // Update Profile Function
+    const updateProfile = useCallback(async (updatedData: any) => {
+        try {
+            updateState({ isLoading: true, error: null });
+            await axios.put(update_profile_url, updatedData);
+
+            fetchNotifications();
+
+            updateState({ isLoading: false });
+        } catch (error) {
+            updateState({ error: "Profile update failed", isLoading: false });
+        }
+    }, [fetchNotifications, updateState]);
+
+    // Axios Interceptor for Auto-Refresh
     useEffect(() => {
         const interceptor = axios.interceptors.response.use(
             (response) => response,
@@ -163,7 +199,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
     }, [refresh, logout]);
 
-
+    // Expose everything in Context
     const contextValue = useMemo(
         () => ({
             user: state.user,
@@ -171,11 +207,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             login,
             logout,
             refresh,
+            updateProfile,
             isAuthenticated: !!state.user && !!state.token,
             isLoading: state.isLoading,
             error: state.error,
+            notifications,
+            fetchNotifications,
+            isNotifLoading,
+            notifError
         }),
-        [state, login, logout, refresh, updateState]
+        [state, login, logout, refresh, updateProfile, updateState, notifications, fetchNotifications, isNotifLoading, notifError]
     );
 
     return (
@@ -185,6 +226,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 };
 
+// Hook to use AuthContext
 export const useAuthContext = () => {
     const context = useContext(AuthContext);
     if (context === undefined) {
