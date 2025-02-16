@@ -1,7 +1,27 @@
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { get_notifications_url, login_url, logout_url, refresh_token_url, update_profile_url } from "../endpoints";
-import { AuthResponse, AuthState, EnhancedAuthContextType, initialState, LoginCredentials, User } from "../interfaces";
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState
+} from 'react';
+import {
+    get_notifications_url,
+    login_url,
+    logout_url,
+    refresh_token_url,
+    update_profile_url
+} from "../endpoints";
+import {
+    AuthResponse,
+    AuthState,
+    EnhancedAuthContextType,
+    initialState,
+    LoginCredentials,
+    User
+} from "../interfaces";
 
 const AuthContext = createContext<EnhancedAuthContextType | undefined>(undefined);
 
