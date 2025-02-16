@@ -7,7 +7,7 @@ const Layout = ({ children }: any) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
   return (
-    <div className="grid h-screen overflow-y-auto">
+    <div className="grid h-screen overflow-y-auto bg-[#f0f5f9]">
       {/* Desktop Sidebar */}
       <aside className="fixed top-0 left-0 h-screen w-64 p-3 hidden lg:!block">
         <Sidebar />
@@ -21,10 +21,7 @@ const Layout = ({ children }: any) => {
 
       <header className="fixed top-0 left-0 right-0 lg:left-64 p-3 z-30">
         <div className="relative">
-          <button
-            className="absolute left-3 top-1/2 -translate-y-1/2 lg:hidden text-white"
-            onClick={() => setIsOpen(true)}
-          >
+          <button  className="absolute left-3 top-1/2 -translate-y-1/2 lg:hidden" onClick={() => setIsOpen(true)} >
             <Menu size={24} />
           </button>
           <Topbar />

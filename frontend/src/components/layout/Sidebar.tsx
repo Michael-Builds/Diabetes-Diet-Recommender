@@ -1,7 +1,8 @@
 const Sidebar = () => {
     return (
-        <section className="bg-gray-800 h-full rounded-lg text-white py-3 w-[15rem] px-5 items-center flex justify-center">
-            Sidebar
+        <section className="bg-[#ffffff] font-geist shadow-sm h-full rounded-lg py-3 w-[15rem] px-5 items-center gap-20 flex flex-col">
+            <div>Logo</div>
+            <div>Nav items</div>
         </section>
     );
 };
