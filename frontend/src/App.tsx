@@ -1,5 +1,4 @@
 import { Route, Routes } from "react-router-dom";
-import Layout from "./components/Layout";
 import RequireAuth from "./context/RequireAuth";
 import NotFound from "./pages/404/NotFound";
 import ForgotPassword from "./pages/auth/forgot-password/ForgotPassword";
@@ -10,6 +9,7 @@ import VerifyOtp from "./pages/auth/verify-otp/VerifyOtp";
 import Home from "./pages/home/Home";
 import Profile from "./pages/profile/Profile";
 import Splash from "./pages/splash/Splash";
+import Layout from "./components/layout/Layout";
 
 function App() {
   return (
@@ -23,13 +23,13 @@ function App() {
       <Route path="/verify-otp" element={<VerifyOtp />} />
 
       <Route
-        path="/home"
+        path="/dashboard"
         element={
-          <RequireAuth>
+          // <RequireAuth>
             <Layout>
               <Home />
             </Layout>
-          </RequireAuth>
+          // </RequireAuth>
         }
       />
       <Route
