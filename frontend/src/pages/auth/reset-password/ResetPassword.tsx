@@ -36,6 +36,7 @@ const ResetPassword = () => {
       toast.error("All fields are required.");
       return;
     }
+    setIsSubmitting(true);
     try {
       const response = await authService.resetPassword(formData);
       toast.success(response.data.message);
