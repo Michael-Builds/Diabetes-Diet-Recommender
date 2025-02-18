@@ -47,7 +47,11 @@ const Signup = () => {
 
     setErrors({ ...errors, ...newErrors });
 
-    return Object.values(newErrors).every((error) => error === "");
+    if (Object.values(newErrors).some((error) => error !== "")) {
+      toast.error("Please fill in all required fields.", { position: "top-center" });
+      return false;
+    }
+    return true;
   };
 
   const validateStep2 = () => {
@@ -58,7 +62,11 @@ const Signup = () => {
 
     setErrors({ ...errors, ...newErrors });
 
-    return Object.values(newErrors).every((error) => error === "");
+    if (Object.values(newErrors).some((error) => error !== "")) {
+      toast.error("Please fill in all required fields.", { position: "top-center" });
+      return false;
+    }
+    return true;
   };
 
   const handleNextStep = () => {
@@ -90,12 +98,11 @@ const Signup = () => {
   };
 
   return (
-    <div className="w-[34rem] h-auto select-none font-geist shadow-lg p-10 bg-white rounded-lg">
+    <div className="2xl:w-[34rem] lg:w-[32rem] h-auto select-none font-geist shadow-lg p-10 bg-white rounded-lg">
       <div className="flex flex-col items-center">
         <img src={Logo} alt="Logo" className="w-52 h-auto" />
         <p className="text-sm text-gray-500 mt-4">Create your account</p>
       </div>
-
       {/* Step 1: Basic Information */}
       {step === 1 && (
         <div className="mt-4 flex flex-col gap-3">
@@ -108,7 +115,7 @@ const Signup = () => {
             value={formData.firstname}
             onChange={handleChange}
             error={errors.firstname}
-            showErrorBelow={true}
+            showErrorBelow={false}
           />
           <Input
             label="Last Name"
@@ -119,7 +126,7 @@ const Signup = () => {
             value={formData.lastname}
             onChange={handleChange}
             error={errors.lastname}
-            showErrorBelow={true}
+            showErrorBelow={false}
           />
           <RadioButton
             label="Select Gender"
@@ -131,7 +138,7 @@ const Signup = () => {
             onChange={setSelectedRadio}
             width="w-full"
             error={errors.gender}
-            showErrorBelow={true}
+            showErrorBelow={false}
             className="mt-2 mb-2"
           />
 
@@ -157,7 +164,7 @@ const Signup = () => {
             value={formData.email}
             onChange={handleChange}
             error={errors.email}
-            showErrorBelow={true}
+            showErrorBelow={false}
           />
           <Input
             label="Phone Number"
@@ -168,7 +175,7 @@ const Signup = () => {
             value={formData.phone_number}
             onChange={handleChange}
             error={errors.phone_number}
-            showErrorBelow={true}
+            showErrorBelow={false}
           />
           <Input
             label="Password"

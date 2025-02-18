@@ -32,7 +32,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="w-[30rem] h-[22rem] select-none font-geist shadow-lg p-10 bg-white rounded-lg">
+    <div className="2xl:w-[30rem] lg:w-[29rem] h-[22rem] select-none font-geist shadow-lg p-10 bg-white rounded-lg">
       <div className="flex flex-col items-center">
         <img src={Logo} alt="Logo" className="w-52 h-auto" />
         <p className="text-sm text-gray-500 mt-4">Reset your password</p>

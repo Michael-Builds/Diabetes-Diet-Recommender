@@ -59,7 +59,7 @@ const Login = () => {
     };
 
     return (
-        <div className="w-[32rem] h-[30rem] select-none font-geist shadow-lg p-10">
+        <div className="2xl:w-[32rem] lg:w-[30rem] 2xl:h-[30rem] lg:h-[29rem] select-none font-geist shadow-lg p-10">
             <div className="flex flex-col items-center">
                 <img src={Logo} alt="Logo" className="w-52 h-auto" />
                 <p className="text-sm text-gray-500 mt-4">Login into your account</p>
