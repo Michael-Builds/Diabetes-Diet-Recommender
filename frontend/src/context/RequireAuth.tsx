@@ -3,7 +3,7 @@ import { useAuthContext } from "./useAuthContext";
 
 const RequireAuth = ({ children }: { children: React.ReactNode }) => {
     const { isAuthenticated }: any = useAuthContext();
-    return isAuthenticated ? children : <Navigate to="/login" />;
+    return isAuthenticated ? children : <Navigate to="/" />;
 };
 
 export default RequireAuth;

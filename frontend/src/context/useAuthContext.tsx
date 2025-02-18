@@ -114,7 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } finally {
             localStorage.removeItem("user");
             dispatch({ type: "LOGOUT" });
-            navigate("/login");
+            navigate("/");
         }
     };
 
@@ -122,7 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!state.user) return;
         try {
             const { data } = await authService.refreshToken();
-            
+
             if (data.token && data.refreshToken) {
                 localStorage.setItem("token", data.token);
                 localStorage.setItem("refreshToken", data.refreshToken);

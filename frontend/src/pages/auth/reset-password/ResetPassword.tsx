@@ -53,7 +53,7 @@ const ResetPassword = () => {
         await refresh();
       }
 
-      navigate("/login");
+      navigate("/");
     } catch (error: any) {
       const errorMsg = error.response?.data?.message || "Reset failed. Try again.";
       toast.error(errorMsg);
@@ -121,7 +121,7 @@ const ResetPassword = () => {
 
       <p className="mt-6 text-sm flex items-center justify-center text-gray-600">
         Remembered your password?
-        <span className="text-blue-500 ml-2 hover:underline cursor-pointer" onClick={() => navigate("/login")}>
+        <span className="text-blue-500 ml-2 hover:underline cursor-pointer" onClick={() => navigate("/")}>
           Login here
         </span>
       </p>

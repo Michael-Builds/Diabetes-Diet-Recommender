@@ -98,7 +98,7 @@ const Signup = () => {
   };
 
   return (
-    <div className="2xl:w-[34rem] lg:w-[32rem] h-auto select-none font-geist shadow-lg p-10 bg-white rounded-lg">
+    <div className="2xl:w-[32rem] lg:w-[30rem] h-auto select-none font-geist shadow-lg p-10 bg-white rounded-lg">
       <div className="flex flex-col items-center">
         <img src={Logo} alt="Logo" className="w-52 h-auto" />
         <p className="text-sm text-gray-500 mt-4">Create your account</p>
@@ -211,7 +211,7 @@ const Signup = () => {
 
       <p className="mt-6 text-sm flex items-center justify-center text-gray-600">
         Already have an account?
-        <span className="text-blue-500 ml-2 hover:underline cursor-pointer" onClick={() => navigate("/login")}>
+        <span className="text-blue-500 ml-2 hover:underline cursor-pointer" onClick={() => navigate("/")}>
           Login into your account
         </span>
       </p>

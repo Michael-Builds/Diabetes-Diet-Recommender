@@ -44,8 +44,7 @@ const VerifyOtp = () => {
             toast.success("Account verified successfully! Redirecting to login...", { position: "top-center" });
             setSuccessMessage("Account verified successfully!");
 
-
-            setTimeout(() => navigate("/login"), 3000);
+            navigate("/");
         } catch (error: any) {
             console.error("OTP Verification Failed:", error);
 
