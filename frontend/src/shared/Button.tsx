@@ -1,9 +1,10 @@
 import clsx from "clsx";
 import { FC, ReactNode } from "react";
+import Spinner from "./Spinner";
 
 interface ButtonProps {
   text: string;
-  onClick: () => void;
+  onClick?: (event?: React.MouseEvent<HTMLButtonElement>) => void; 
   width?: string;
   height?: string;
   borderRadius?: string;
@@ -55,10 +56,7 @@ const Button: FC<ButtonProps> = ({
       )}
     >
       {isLoading ? (
-        <div className="flex items-center space-x-2">
-          <span className="animate-spin border-2 border-white border-t-transparent rounded-full w-5 h-5"></span>
-          <span>Loading...</span>
-        </div>
+        <Spinner height="18px" width="18px" borderWidth="2px" />
       ) : (
         <>
           {icon && <span className="mr-2">{icon}</span>}

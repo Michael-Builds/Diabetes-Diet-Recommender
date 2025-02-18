@@ -1,256 +1,216 @@
-import axios, { AxiosError, AxiosRequestConfig } from "axios";
+import { AxiosError } from "axios";
 import {
     createContext,
-    useCallback,
+    Dispatch,
+    ReactNode,
     useContext,
     useEffect,
     useMemo,
-    useState
-} from 'react';
-import {
-    get_notifications_url,
-    login_url,
-    logout_url,
-    refresh_token_url,
-    update_profile_url
-} from "../endpoints";
-import {
-    AuthResponse,
-    AuthState,
-    EnhancedAuthContextType,
-    initialState,
-    LoginCredentials,
-    User
-} from "../interfaces";
+    useReducer,
+} from "react";
+import { useNavigate } from "react-router-dom";
+import { authService } from "../services/authService";
 
-const AuthContext = createContext<EnhancedAuthContextType | undefined>(undefined);
+interface AuthState {
+    user: any | null;
+    isAuthenticated: boolean;
+    notifications: any[];
+    isLoading: boolean;
+    error: string | null;
+}
 
-let isRefreshing = false;
-let failedQueue: Array<{
-    resolve: (value?: unknown) => void;
-    reject: (reason?: any) => void;
-}> = [];
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const [state, setState] = useState<AuthState>(initialState);
-    const [notifications, setNotifications] = useState<any[]>([]);
-    const [isNotifLoading, setIsNotifLoading] = useState<boolean>(false);
-    const [notifError, setNotifError] = useState<string | null>(null);
-
-    // Function to process failed requests when refreshing tokens
-    const processQueue = (error: Error | null, token: string | null = null) => {
-        failedQueue.forEach(prom => {
-            if (error) {
-                prom.reject(error);
-            } else {
-                prom.resolve(token);
-            }
-        });
-        failedQueue = [];
-    };
-
-    // Function to update AuthState globally
-    const updateState = useCallback((updates: Partial<AuthState>) => {
-        setState(prev => {
-            const newState = { ...prev, ...updates };
-
-            if ('token' in updates) {
-                if (updates.token) {
-                    localStorage.setItem('token', updates.token);
-                    axios.defaults.headers.common['Authorization'] = `Bearer ${updates.token}`;
-                } else {
-                    localStorage.removeItem('token');
-                    delete axios.defaults.headers.common['Authorization'];
-                }
-            }
-
-            if ('refreshToken' in updates) {
-                updates.refreshToken
-                    ? localStorage.setItem('refreshToken', updates.refreshToken)
-                    : localStorage.removeItem('refreshToken');
-            }
-
-            if ('user' in updates) {
-                updates.user
-                    ? localStorage.setItem('user', JSON.stringify(updates.user))
-                    : localStorage.removeItem('user');
-            }
-
-            return newState;
-        });
-    }, []);
-
-    // Refresh Token
-    const refresh = useCallback(async (): Promise<AuthResponse> => {
-        try {
-            updateState({ isLoading: true, error: null });
-            const response = await axios.get<AuthResponse>(refresh_token_url);
-
-            updateState({
-                token: response.data.access_token,
-                refreshToken: response.data.refresh_token,
-                isLoading: false
-            });
-
-            return response.data;
-        } catch (error) {
-            const message = error instanceof AxiosError
-                ? `Refresh failed: ${error.message}`
-                : 'An unexpected error occurred';
-
-            updateState({ error: message, isLoading: false });
-            throw new Error(message);
-        }
-    }, [updateState]);
-
-    // Login Function
-    const login = useCallback(async (credentials: LoginCredentials): Promise<AuthResponse> => {
-        try {
-            updateState({ isLoading: true, error: null });
-            const response = await axios.post<AuthResponse>(login_url, credentials);
-
-            updateState({
-                user: response.data.user,
-                token: response.data.access_token,
-                refreshToken: response.data.refresh_token,
-                isLoading: false
-            });
-
-            return response.data;
-        } catch (error) {
-            const message = error instanceof AxiosError
-                ? `Login failed: ${error.message}`
-                : 'An unexpected error occurred';
-
-            updateState({ error: message, isLoading: false });
-            throw new Error(message);
-        }
-    }, [updateState]);
-
-    // Logout Function
-    const logout = useCallback(async (): Promise<void> => {
-        try {
-            updateState({ isLoading: true, error: null });
-            await axios.post(logout_url);
-        } catch (error) {
-            console.error('Logout error:', error);
-        } finally {
-            updateState({
-                user: null,
-                token: null,
-                refreshToken: null,
-                isLoading: false,
-                error: null
-            });
-            localStorage.clear();
-        }
-    }, [updateState]);
-
-    // Fetch Notifications
-    const fetchNotifications = useCallback(async () => {
-        setIsNotifLoading(true);
-        setNotifError(null);
-        try {
-            const response = await axios.get(get_notifications_url);
-            setNotifications(response.data);
-        } catch (error) {
-            setNotifError("Failed to fetch notifications");
-        } finally {
-            setIsNotifLoading(false);
-        }
-    }, []);
-
-    // Fetch Notifications on Mount
-    useEffect(() => {
-        fetchNotifications();
-    }, [fetchNotifications]);
-
-    // Update Profile Function
-    const updateProfile = useCallback(async (updatedData: any) => {
-        try {
-            updateState({ isLoading: true, error: null });
-            await axios.put(update_profile_url, updatedData);
-
-            fetchNotifications();
-
-            updateState({ isLoading: false });
-        } catch (error) {
-            updateState({ error: "Profile update failed", isLoading: false });
-        }
-    }, [fetchNotifications, updateState]);
-
-    // Axios Interceptor for Auto-Refresh
-    useEffect(() => {
-        const interceptor = axios.interceptors.response.use(
-            (response) => response,
-            async (error) => {
-                const originalRequest: AxiosRequestConfig & { _retry?: boolean } = error.config;
-
-                if (error.response?.status === 401 && !originalRequest._retry) {
-                    if (isRefreshing) {
-                        return new Promise((resolve, reject) => {
-                            failedQueue.push({ resolve, reject });
-                        })
-                            .then(() => axios(originalRequest))
-                            .catch((err) => Promise.reject(err));
-                    }
-
-                    originalRequest._retry = true;
-                    isRefreshing = true;
-
-                    try {
-                        await refresh();
-                        processQueue(null);
-                        return axios(originalRequest);
-                    } catch (refreshError) {
-                        processQueue(refreshError as Error);
-                        logout();
-                        return Promise.reject(refreshError);
-                    } finally {
-                        isRefreshing = false;
-                    }
-                }
-                return Promise.reject(error);
-            }
-        );
-
-        return () => {
-            axios.interceptors.response.eject(interceptor);
-        };
-    }, [refresh, logout]);
-
-    // Expose everything in Context
-    const contextValue = useMemo(
-        () => ({
-            user: state.user,
-            setUser: (user: User | null) => updateState({ user }),
-            login,
-            logout,
-            refresh,
-            updateProfile,
-            isAuthenticated: !!state.user && !!state.token,
-            isLoading: state.isLoading,
-            error: state.error,
-            notifications,
-            fetchNotifications,
-            isNotifLoading,
-            notifError
-        }),
-        [state, login, logout, refresh, updateProfile, updateState, notifications, fetchNotifications, isNotifLoading, notifError]
-    );
-
-    return (
-        <AuthContext.Provider value={contextValue}>
-            {children}
-        </AuthContext.Provider>
-    );
+const initialState: AuthState = {
+    user: null,
+    notifications: [],
+    isAuthenticated: false,
+    isLoading: false,
+    error: null,
 };
 
-// Hook to use AuthContext
+interface AuthContextProps {
+    user: any | null;
+    notifications: any[];
+    isAuthenticated: boolean;
+    isLoading: boolean;
+    error: string | null;
+    login: (credentials: any) => Promise<void>;
+    logout: () => Promise<void>;
+    refresh: () => Promise<void>;
+    updateProfile: (data: any) => Promise<void>;
+    fetchNotifications: () => Promise<void>;
+    dispatch: Dispatch<AuthAction>
+}
+
+type AuthAction =
+    | { type: "LOGIN_SUCCESS"; payload: any }
+    | { type: "LOGOUT" }
+    | { type: "SET_LOADING"; payload: boolean }
+    | { type: "SET_ERROR"; payload: string | null }
+    | { type: "SET_NOTIFICATIONS"; payload: any[] };
+
+const authReducer = (state: AuthState, action: AuthAction): AuthState => {
+    switch (action.type) {
+        case "LOGIN_SUCCESS":
+            return {
+                ...state,
+                user: action.payload,
+                isAuthenticated: true,
+                isLoading: false,
+                error: null
+            };
+        case "LOGOUT":
+            return { ...initialState };
+        case "SET_LOADING":
+            return { ...state, isLoading: action.payload };
+        case "SET_ERROR":
+            return { ...state, error: action.payload };
+        case "SET_NOTIFICATIONS":
+            return { ...state, notifications: action.payload };
+        default:
+            return state;
+    }
+};
+
+
+
+const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+    const [state, dispatch] = useReducer(authReducer, initialState);
+    const navigate = useNavigate();
+
+    const fetchNotifications = async () => {
+        if (!state.isAuthenticated) return;
+        try {
+            const { data } = await authService.getNotifications();
+            dispatch({ type: "SET_NOTIFICATIONS", payload: data.notifications });
+            console.log("🟢 Notifications Fetched:", data.notifications);
+        } catch (error) {
+            console.error("Failed to fetch notifications:", error);
+        }
+    };
+
+    const login = async (credentials: any) => {
+        dispatch({ type: "SET_LOADING", payload: true });
+        try {
+            const { data } = await authService.login(credentials);
+            console.log("🔵 Login Response:", data);
+            localStorage.setItem("user", JSON.stringify(data.user));
+            dispatch({ type: "LOGIN_SUCCESS", payload: data.user });
+            await fetchNotifications();
+        } catch (error: any) {
+            const errorMsg = error instanceof AxiosError
+                ? error.response?.data?.message || "Login failed"
+                : "An error occurred";
+            dispatch({ type: "SET_ERROR", payload: errorMsg });
+        }
+    };
+
+    const logout = async () => {
+        try {
+            await authService.logout();
+        } catch (error) {
+            console.error("Logout failed:", error);
+        } finally {
+            localStorage.removeItem("user");
+            dispatch({ type: "LOGOUT" });
+            navigate("/login");
+        }
+    };
+
+    const refresh = async () => {
+        if (!state.user) return;
+        try {
+            const { data } = await authService.refreshToken();
+            
+            if (data.token && data.refreshToken) {
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("refreshToken", data.refreshToken);
+            }
+
+            localStorage.setItem("user", JSON.stringify(data.user));
+            dispatch({ type: "LOGIN_SUCCESS", payload: data.user });
+            await fetchNotifications();
+        } catch (error) {
+            console.error("Failed to refresh token:", error);
+            logout();
+        }
+    };
+
+    const updateProfile = async (data: any) => {
+        try {
+            await authService.updateProfile(data);
+            const updatedUser = { ...state.user, ...data };
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+            dispatch({ type: "LOGIN_SUCCESS", payload: { ...state.user, ...data } });
+            await fetchNotifications();
+        } catch (error) {
+            console.error("Profile update failed:", error);
+        }
+    };
+
+
+    useEffect(() => {
+        const storedUser = localStorage.getItem("user");
+        const storedToken = localStorage.getItem("token");
+
+        try {
+            if (storedUser && storedToken) {
+                dispatch({ type: "LOGIN_SUCCESS", payload: JSON.parse(storedUser) });
+                fetchNotifications();
+            } else {
+                localStorage.removeItem("user");
+                refresh();
+            }
+        } catch (error) {
+            console.error("Error parsing stored user:", error);
+            localStorage.removeItem("user");
+            refresh();
+        }
+    }, []);
+
+
+    // ✅ Fetch notifications **only when user is authenticated**
+    useEffect(() => {
+        if (state.isAuthenticated) {
+            fetchNotifications();
+        }
+    }, [state.isAuthenticated]);
+
+    // Check if user is authenticated on app load
+    useEffect(() => {
+        if (!state.user) return;
+        const checkAuth = async () => {
+            try {
+                await refresh();
+            } catch (error) {
+                logout();
+            }
+        };
+        checkAuth();
+    }, [state.user]);
+
+    const contextValue = useMemo(() => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+        notifications: state.notifications,
+        isLoading: state.isLoading,
+        error: state.error,
+        login,
+        logout,
+        refresh,
+        updateProfile,
+        fetchNotifications,
+        dispatch
+    }), [state]);
+
+    return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
+};
+
 export const useAuthContext = () => {
     const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuthContext must be used within an AuthProvider');
+    if (!context) {
+        throw new Error("useAuthContext must be used within an AuthProvider");
     }
     return context;
 };

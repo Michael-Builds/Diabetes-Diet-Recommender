@@ -51,19 +51,24 @@ export const sendToken = (user: IUser, statusCode: number, res: Response) => {
     const accessToken = user.signAccessToken();
     const refreshToken = user.signRefreshToken();
 
-    // Upload session to Redis
-    const userId = String(user._id);
-    redis.set(userId, JSON.stringify(user));
+    // Store tokens in HTTP-only cookies (not accessible by JavaScript)
+    res.cookie("access_token", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", 
+        sameSite: "strict",
+        maxAge: 24 * 60 * 60 * 1000, 
+    });
 
-    // Set cookies
-    res.cookie("access_token", accessToken, accessTokenOptions);
-    res.cookie("refresh_token", refreshToken, refreshTokenOptions);
+    res.cookie("refresh_token", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 14 * 24 * 60 * 60 * 1000,
+    });
 
-    // Send response with token information
     res.status(statusCode).json({
         success: true,
         user,
-        accessToken,
-        refreshToken
+        message: "Logged in successfully",
     });
 };

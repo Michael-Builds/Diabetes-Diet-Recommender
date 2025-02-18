@@ -30,7 +30,7 @@ const RadioButton: FC<RadioButtonProps> = ({
 }) => {
     return (
         <div className={clsx("w-full font-geist", className)}>
-            {label && <label className="block text-sm font-medium text-gray-800 mb-1">{label}</label>}
+            {label && <label className="block text-sm font-medium text-gray-800 mb-2">{label}</label>}
 
             <div className={clsx("flex flex-wrap gap-4 items-center", width)}>
                 {options.map((option) => (

@@ -9,7 +9,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   icon?: ReactNode;
   className?: string;
   value: string;
-  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
   width?: string;
   height?: string;
   borderRadius?: string;
@@ -42,7 +42,7 @@ const Input: FC<InputProps> = ({
 
       <div
         className={clsx(
-          "relative mt-1 flex items-center border bg-white",
+          "relative mt-1 -mb-1 text-sm flex items-center border bg-white",
           error && showErrorBelow ? "border-red-500" : "border-gray-400",
           borderRadius,
           className

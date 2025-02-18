@@ -21,7 +21,7 @@ const Layout = ({ children }: any) => {
 
       <header className="fixed top-0 left-0 right-0 lg:left-64 p-3 z-30">
         <div className="relative">
-          <button  className="absolute left-3 top-1/2 -translate-y-1/2 lg:hidden" onClick={() => setIsOpen(true)} >
+          <button className="absolute left-3 top-1/2 -translate-y-1/2 lg:hidden" onClick={() => setIsOpen(true)} >
             <Menu size={24} />
           </button>
           <Topbar />

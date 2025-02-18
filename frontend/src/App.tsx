@@ -10,25 +10,46 @@ import Home from "./pages/home/Home";
 import Profile from "./pages/profile/Profile";
 import Splash from "./pages/splash/Splash";
 import Layout from "./components/layout/Layout";
+import BackgroundLayout from "./components/layout/BackgroundLayout";
 
 function App() {
   return (
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<Splash />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/verify-otp" element={<VerifyOtp />} />
+      <Route path="/login" element={
+        <BackgroundLayout>
+          <Login />
+        </BackgroundLayout>
+      } />
+      <Route path="/register" element={
+        <BackgroundLayout>
+          <Signup />
+        </BackgroundLayout>
+      } />
+      <Route path="/forgot-password" element={
+        <BackgroundLayout>
+          <ForgotPassword />
+        </BackgroundLayout>
+      } />
+      <Route path="/reset-password" element={
+        <BackgroundLayout>
+          <ResetPassword />
+        </BackgroundLayout>
+      } />
+      <Route path="/verify-otp" element={
+        <BackgroundLayout>
+          <VerifyOtp />
+        </BackgroundLayout>
+      } />
 
       <Route
         path="/dashboard"
         element={
           // <RequireAuth>
-            <Layout>
-              <Home />
-            </Layout>
+          <Layout>
+            <Home />
+          </Layout>
           // </RequireAuth>
         }
       />

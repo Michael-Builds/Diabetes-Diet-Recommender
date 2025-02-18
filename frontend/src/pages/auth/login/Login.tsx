@@ -1,20 +1,125 @@
-// import { useAuthContext } from "../../../context/useAuthContext";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Logo from "/assets/logo.svg"
+import Input from "../../../shared/Input";
+import Button from "../../../shared/Button";
+import { useAuthContext } from "../../../context/useAuthContext";
+import { Lock, Mail } from "lucide-react";
+import { toast } from "react-toastify";
 
 const Login = () => {
+    const { login }: any = useAuthContext();
+    const navigate = useNavigate();
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // const { login }: any = useAuthContext();
+    const [formData, setFormData] = useState({
+        email: "",
+        password: "",
+    });
 
-    // const handleLogin = async (credentials: LoginCredentials) => {
-    //     try {
-    //         await login(credentials);
-    //     } catch (error) {
-    // }
-    // }
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const validateForm = () => {
+        if (!formData.email.trim() || !formData.password.trim()) {
+            toast.error("Please fill in both email and password.", { position: "top-center" });
+            return false;
+        }
+        return true;
+    };
+
+    const handleLogin = async () => {
+        if (!validateForm()) return;
+
+        setIsSubmitting(true);
+
+        try {
+            await login(formData);
+            toast.success("Login successful", {
+                position: "top-center",
+                autoClose: 2000
+            });
+            navigate("/dashboard");
+        } catch (error: any) {
+            const message =
+                error.response?.data?.message ||
+                (error.response?.status === 400
+                    ? "Invalid email or password. Please try again."
+                    : "Something went wrong. Try again later.");
+
+            toast.error(message, {
+                position: "top-center",
+                autoClose: 2000
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
-        <section className="h-screen flex items-center justify-center bg-gray-900 text-white">
-            <p>Login Page</p>
-        </section>
-    );
-};
+        <div className="w-[32rem] h-[30rem] select-none font-geist shadow-lg p-10">
+            <div className="flex flex-col items-center">
+                <img src={Logo} alt="Logo" className="w-52 h-auto" />
+                <p className="text-sm text-gray-500 mt-4">Login into your account</p>
+            </div>
+            <div className="mt-2 flex flex-col gap-3">
+                <Input
+                    label="Email"
+                    type="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    icon={<Mail className="w-5 h-5" />}
+                    error={!formData.email ? "Email is required" : ""}
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="mb-4"
+                    showErrorBelow={false}
+                />
+                <Input
+                    label="Password"
+                    type="password"
+                    name="password"
+                    placeholder="Enter password"
+                    icon={<Lock className="w-5 h-5" />}
+                    width="w-full"
+                    height="h-10"
+                    value={formData.password}
+                    onChange={handleChange}
+                    error={!formData.password ? "Password is required" : ""}
+                    borderRadius="rounded-md"
+                    showErrorBelow={false}
+                />
+            </div>
+
+            <div className="flex justify-between items-center mt-8 text-sm text-gray-600">
+                <label className="flex items-center">
+                    <input type="checkbox" className="mr-2" />
+                    Remember this Device
+                </label>
+                <a href="/forgot-password" className="text-blue-500 hover:underline">Forgot Password?</a>
+            </div>
+
+            <div className="mt-6">
+                <Button
+                    text="Login"
+                    onClick={handleLogin}
+                    fullWidth
+                    hover={true}
+                    textColor="text-white"
+                    bgColor="bg-blue-600"
+                    hoverColor="hover:bg-blue-800"
+                    isLoading={isSubmitting}
+                    animate={false}
+                />
+            </div>
+
+            <p className="mt-4 text-sm flex items-center justify-center text-gray-600">
+                New to DiaNutri ?  <a href="/register" className="text-blue-500 ml-4 hover:underline">Create an account</a>
+            </p>
+        </div>
+    )
+}
 
 export default Login;

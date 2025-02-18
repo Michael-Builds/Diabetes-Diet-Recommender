@@ -19,16 +19,19 @@ export const getUserNotifications = CatchAsyncErrors(async (req: AuthenticatedRe
             .find({ userId })
             .sort({ createdAt: -1 });
 
+        console.log("🔵 Retrieved Notifications:", notifications); // Debugging
+
         res.status(200).json({
             success: true,
             message: "User notifications retrieved successfully",
             notifications,
         });
     } catch (error: any) {
+        console.error("❌ Error fetching notifications:", error);
         return next(new ErrorHandler(error.message, 500));
     }
-}
-);
+});
+
 
 // update notification status handler
 export const updateNotificationStatus = CatchAsyncErrors(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {

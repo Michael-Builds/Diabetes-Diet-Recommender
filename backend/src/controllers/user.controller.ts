@@ -67,10 +67,15 @@ export const accountRegister = CatchAsyncErrors(async (req: Request, res: Respon
             data
         });
 
+        res.cookie("activation_token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 30 * 60 * 1000,
+        });
         res.status(201).json({
             success: true,
             message: `Please check your email: ${user.email} to activate your account.`,
-            activationToken: token,
         });
 
     } catch (error: any) {
@@ -149,7 +154,13 @@ export const resendActivationCode = CatchAsyncErrors(async (req: Request, res: R
 
 // Account activation handler
 export const activateAccount = CatchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
-    const { activation_token, activation_code } = req.body as IActivationRequest;
+    // ✅ Read activation token from cookies instead of request body
+    const activation_token = req.cookies.activation_token;
+    const { activation_code } = req.body as IActivationRequest;
+
+    if (!activation_token) {
+        return next(new ErrorHandler("Activation token is missing", 400));
+    }
 
     try {
         const decoded = jwt.verify(
@@ -176,6 +187,9 @@ export const activateAccount = CatchAsyncErrors(async (req: Request, res: Respon
         existingUser.isVerified = true;
         await existingUser.save();
 
+        // ✅ Remove activation token from cookies after successful activation
+        res.clearCookie("activation_token");
+
         res.status(200).json({
             success: true,
             message: "Account activated successfully",
@@ -191,6 +205,7 @@ export const activateAccount = CatchAsyncErrors(async (req: Request, res: Respon
     }
 });
 
+
 // User login handler
 export const userLogin = CatchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -200,24 +215,22 @@ export const userLogin = CatchAsyncErrors(async (req: Request, res: Response, ne
             return next(new ErrorHandler("Please enter email and password", 400));
         }
 
-        // Find the user in the database
+        // ✅ Ensure password is retrieved from database
         const user = await userModel.findOne({ email }).select("+password");
         if (!user) {
             return next(new ErrorHandler("Invalid email or password", 400));
         }
 
-        // Compare the provided password with the stored hashed password
-        const isPasswordMatch = await user.comparePassword(password);
+        // ✅ Ensure password comparison works correctly
+        const isPasswordMatch = await bcrypt.compare(password, user.password);
+        console.log("Password Match:", isPasswordMatch);
         if (!isPasswordMatch) {
             return next(new ErrorHandler("Invalid email or password", 400));
         }
 
-        await user.save();
 
-        // Save user session in Redis with a 1-hour expiration
-        await setCache(user?.id, user, 3600);
+        await setCache(String(user._id), user, 3600);
 
-        // Generate tokens and send them in the response
         sendToken(user, 200, res);
     } catch (err: any) {
         return next(new ErrorHandler(err.message, 400));
@@ -225,35 +238,36 @@ export const userLogin = CatchAsyncErrors(async (req: Request, res: Response, ne
 });
 
 
+
 // user logout handler
 export const userLogout = CatchAsyncErrors(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-        // Clear the access token cookie by setting its maxAge to 1 millisecond
-        res.cookie("access_token", "", { maxAge: 1, httpOnly: true });
+        console.log("🟡 Logging out user...");
 
-        // Clear the refresh token cookie by setting its maxAge to 1 millisecond
+        // Clear the access token cookie
+        res.cookie("access_token", "", { maxAge: 1, httpOnly: true });
         res.cookie("refresh_token", "", { maxAge: 1, httpOnly: true });
 
-        // Extract the authenticated user from the request object
+        // Remove session from Redis
         const user = req.user;
-
         if (user) {
-            // Convert the user's ObjectId to a string format
-            const userId = String(user._id);
-            await clearCache(userId);
+            console.log("🟡 Removing Redis session for user:", user._id);
+            await clearCache(String(user._id));
         } else {
-            console.warn("No user found in request, skipping Redis deletion.");
+            console.warn("🔴 No user found in request, skipping Redis deletion.");
         }
-        // Send a success response to the client indicating the user has been logged out
+
         res.status(200).json({
             success: true,
             message: "Logged out successfully",
         });
+
     } catch (err: any) {
-        // Pass any errors that occur to the global error handler
+        console.error("❌ Logout error:", err.message);
         return next(new ErrorHandler(err.message, 400));
     }
 });
+
 
 
 // Function to generate a 4-digit activation code
@@ -331,14 +345,16 @@ export const resetPassword = CatchAsyncErrors(async (req: Request, res: Response
     const { email, activationCode, newPassword } = req.body;
 
     try {
-        // Validate input
         if (!email || !activationCode || !newPassword) {
             return next(new ErrorHandler("All fields are required", 400));
         }
 
-        // Retrieve stored activation code from Redis
-        const storedCode = await redis.get(`reset-code:${email}`);
+        // Validate password strength
+        if (!passwordRegex.test(newPassword)) {
+            return next(new ErrorHandler("Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character", 400));
+        }
 
+        const storedCode = await redis.get(`reset-code:${email}`);
         if (!storedCode) {
             return next(new ErrorHandler("Reset code has expired or is invalid", 400));
         }
@@ -347,42 +363,56 @@ export const resetPassword = CatchAsyncErrors(async (req: Request, res: Response
             return next(new ErrorHandler("Invalid reset code", 400));
         }
 
-        // Find the user by email
         const user = await userModel.findOne({ email });
         if (!user) {
             return next(new ErrorHandler("User not found", 404));
         }
 
         // Hash the new password
-        user.password = await bcrypt.hash(newPassword, 10);
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-        // Save updated password
-        await user.save();
+        // Update the user's password directly in the database
+        await userModel.findOneAndUpdate(
+            { email },
+            { $set: { password: hashedPassword } },
+            { new: true }
+        );
 
-        // Remove activation code from Redis after successful reset
+        // Clear the reset code from Redis
         await redis.del(`reset-code:${email}`);
 
-        // Create a notification for the user
+        // Generate new tokens
+        const accessToken = jwt.sign({ id: user._id }, ACCESS_TOKEN as Secret, { expiresIn: "24h" });
+        const refreshToken = jwt.sign({ id: user._id }, REFRESH_TOKEN as Secret, { expiresIn: "14d" });
+
+        // Update Redis cache with the latest user data
+        const updatedUser = await userModel.findOne({ email });
+        if (updatedUser) {
+            await redis.set(String(user._id), JSON.stringify(updatedUser), "EX", 86400); // 24 hours
+        }
+
+        // Create notification
         await notificationModel.create({
             userId: String(user._id),
-            title: "Reset Password",
-            message: `You've successfully reset your password.`,
+            title: "Password Reset Successful",
+            message: `Your password has been successfully reset.`,
         });
 
-
-        // Send email with activation code
+        // Send email confirmation
         await sendEmail({
             email: user.email,
             subject: "Password Reset Successful",
             template: "reset-password-success.ejs",
-            data: {
-                firstname: user.firstname,
-            },
+            data: { firstname: user.firstname }
         });
+
+        // Set cookies
+        res.cookie("refresh_token", refreshToken, refreshTokenOptions);
+        res.cookie("access_token", accessToken, accessTokenOptions);
 
         res.status(200).json({
             success: true,
-            message: "Password has been reset successfully",
+            message: "Password has been reset successfully"
         });
 
     } catch (error: any) {
@@ -457,27 +487,61 @@ export const getUserInfo = CatchAsyncErrors(async (req: AuthenticatedRequest, re
 // Update access token handler
 export const updateAccessToken = CatchAsyncErrors(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-        const refresh_token = req.cookies.refresh_token as string;
-        if (!refresh_token) return next(new ErrorHandler("No refresh token provided", 400));
+        console.log("🔵 Received refresh-token request...");
 
-        const decoded = jwt.verify(refresh_token, REFRESH_TOKEN as string) as JwtPayload;
+        const refresh_token = req.cookies.refresh_token as string;
+        console.log("🔵 Refresh Token:", refresh_token); // Log received token
+
+        if (!refresh_token) {
+            console.log("🔴 No refresh token found in cookies");
+            return next(new ErrorHandler("No refresh token provided", 400));
+        }
+
+        // Verify the refresh token
+        const decoded = jwt.verify(refresh_token, REFRESH_TOKEN as Secret) as JwtPayload;
+        console.log("🔵 Decoded Token:", decoded); // Log decoded token
+
         if (!decoded) return next(new ErrorHandler("Invalid refresh token", 400));
 
+        // Check if session exists in Redis
         const session = await redis.get(decoded.id);
-        if (!session) return next(new ErrorHandler("Session expired. Please login again.", 400));
+        console.log("🔵 Session Data from Redis:", session);
 
+        if (!session) {
+            console.log("🔴 Session expired, forcing logout");
+            return next(new ErrorHandler("Session expired. Please log in again.", 400));
+        }
+
+        console.log("✅ Found session in Redis:", session);
         const user = JSON.parse(session);
 
-        const accessToken = jwt.sign({ id: user._id }, ACCESS_TOKEN as string, { expiresIn: "24h" });
-        const refreshToken = jwt.sign({ id: user._id }, REFRESH_TOKEN as string, { expiresIn: "14d" });
+        // Generate new access & refresh tokens
+        const accessToken = jwt.sign({ id: user._id }, ACCESS_TOKEN as Secret, { expiresIn: "24h" });
+        const refreshToken = jwt.sign({ id: user._id }, REFRESH_TOKEN as Secret, { expiresIn: "14d" });
 
-        res.cookie("access_token", accessToken, accessTokenOptions);
-        res.cookie("refresh_token", refreshToken, refreshTokenOptions);
+        // ✅ Set Cookies Properly
+        res.cookie("access_token", accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 24 * 60 * 60 * 1000, // 1 day
+        });
 
-        await setCache(user?.id, user, 604800);
+        res.cookie("refresh_token", refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
+        });
+
+        // Store updated user session in Redis
+        await setCache(user._id, user, 604800);
+
+        console.log("✅ Tokens refreshed successfully");
 
         return res.status(200).json({ success: true, accessToken });
     } catch (err: any) {
+        console.log("❌ Error refreshing token:", err.message);
         return next(new ErrorHandler("Authorization failed", 500));
     }
 });
