@@ -31,7 +31,7 @@ const Sidebar = () => {
                     <div
                         key={item.path}
                         onClick={() => handleNavigation(item.path)}
-                        className={`py-2 px-4 text-center text-gray-700 hover:bg-blue-300 hover:border-l-2 hover:border-blue-500 transition-all duration-300 flex items-center gap-2 cursor-pointer ${activePath === item.path
+                        className={`py-3 px-4 text-center text-gray-700 hover:bg-blue-300 hover:border-l-2 hover:border-blue-500 transition-all duration-300 flex items-center gap-2 cursor-pointer ${activePath === item.path
                             ? "bg-blue-200 border-blue-500 border-l-2"
                             : "border-l-2 border-transparent"}`} >
                         {item.icon}
