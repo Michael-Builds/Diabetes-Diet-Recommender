@@ -54,9 +54,9 @@ export const sendToken = (user: IUser, statusCode: number, res: Response) => {
     // Store tokens in HTTP-only cookies (not accessible by JavaScript)
     res.cookie("access_token", accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", 
+        secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        maxAge: 24 * 60 * 60 * 1000, 
+        maxAge: 24 * 60 * 60 * 1000,
     });
 
     res.cookie("refresh_token", refreshToken, {
@@ -69,6 +69,7 @@ export const sendToken = (user: IUser, statusCode: number, res: Response) => {
     res.status(statusCode).json({
         success: true,
         user,
+        accessToken,
         message: "Logged in successfully",
     });
 };

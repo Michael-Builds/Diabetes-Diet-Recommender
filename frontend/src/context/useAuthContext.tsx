@@ -1,211 +1,120 @@
-import { AxiosError } from "axios";
-import {
-    createContext,
-    Dispatch,
-    ReactNode,
-    useContext,
-    useEffect,
-    useMemo,
-    useReducer,
-} from "react";
-import { useNavigate } from "react-router-dom";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { authService } from "../services/authService";
+import { useNavigate } from "react-router-dom";
 
-interface AuthState {
-    user: any | null;
-    isAuthenticated: boolean;
-    notifications: any[];
-    isLoading: boolean;
-    error: string | null;
-}
-
-const initialState: AuthState = {
-    user: null,
-    notifications: [],
-    isAuthenticated: false,
-    isLoading: false,
-    error: null,
-};
-
-interface AuthContextProps {
-    user: any | null;
-    notifications: any[];
-    isAuthenticated: boolean;
-    isLoading: boolean;
-    error: string | null;
-    login: (credentials: any) => Promise<void>;
+interface AuthContextType {
+    login: (credentials: any) => Promise<any>;
     logout: () => Promise<void>;
-    refresh: () => Promise<void>;
-    updateProfile: (data: any) => Promise<void>;
+    refreshSession: () => Promise<void>;
+    isAuthenticated: boolean;
+    user: any;
+    notifications: any[];
     fetchNotifications: () => Promise<void>;
-    dispatch: Dispatch<AuthAction>
 }
 
-type AuthAction =
-    | { type: "LOGIN_SUCCESS"; payload: any }
-    | { type: "LOGOUT" }
-    | { type: "SET_LOADING"; payload: boolean }
-    | { type: "SET_ERROR"; payload: string | null }
-    | { type: "SET_NOTIFICATIONS"; payload: any[] };
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const authReducer = (state: AuthState, action: AuthAction): AuthState => {
-    switch (action.type) {
-        case "LOGIN_SUCCESS":
-            return {
-                ...state,
-                user: action.payload,
-                isAuthenticated: true,
-                isLoading: false,
-                error: null
-            };
-        case "LOGOUT":
-            return { ...initialState };
-        case "SET_LOADING":
-            return { ...state, isLoading: action.payload };
-        case "SET_ERROR":
-            return { ...state, error: action.payload };
-        case "SET_NOTIFICATIONS":
-            return { ...state, notifications: action.payload };
-        default:
-            return state;
-    }
-};
-
-
-
-const AuthContext = createContext<AuthContextProps | undefined>(undefined);
-
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [state, dispatch] = useReducer(authReducer, initialState);
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+    const [user, setUser] = useState<any>(JSON.parse(localStorage.getItem("user") || "null"));
+    const [token, setToken] = useState<string | null>(localStorage.getItem("token") || null);
+    const [refreshToken, setRefreshToken] = useState<string | null>(localStorage.getItem("refreshToken") || null);
+    const [notifications, setNotifications] = useState<any[]>([]);
     const navigate = useNavigate();
+    const isAuthenticated = useMemo(() => !!token, [token]);
 
+    // Login function
+    const login = async (credentials: any) => {
+        try {
+            const { data } = await authService.login(credentials);
+            if (data.success) {
+                setUser(data.user);
+                setToken(data.accessToken);
+                setRefreshToken(data.refreshToken);
+                localStorage.setItem("user", JSON.stringify(data.user));
+                localStorage.setItem("token", data.accessToken);
+                localStorage.setItem("refreshToken", data.refreshToken);
+
+                await fetchNotifications()
+                return data;
+            }
+            throw new Error(data.message);
+        } catch (error) {
+            return "Error during login.";
+        }
+    };
+
+    // Logout function
+    const logout = async (): Promise<void> => {
+        try {
+            await authService.logout();
+            localStorage.removeItem("user");
+            localStorage.removeItem("token");
+            localStorage.removeItem("refreshToken");
+            setUser(null);
+            setToken(null);
+            setRefreshToken(null);
+        } catch (error) {
+            console.error("Logout failed:", error);
+        }
+    };
+
+    // Refresh token function
+    const refreshSession = async () => {
+        if (refreshToken) {
+            try {
+                const { data } = await authService.refreshToken();
+                if (data.success) {
+                    setToken(data.accessToken);
+                    localStorage.setItem("token", data.accessToken);
+                }
+            } catch (error) {
+                console.error("Failed to refresh session:", error);
+                logout();
+            }
+        }
+    };
+
+    // Fetch notifications function
     const fetchNotifications = async () => {
-        if (!state.isAuthenticated) return;
         try {
             const { data } = await authService.getNotifications();
-            dispatch({ type: "SET_NOTIFICATIONS", payload: data.notifications });
-            console.log("🟢 Notifications Fetched:", data.notifications);
+            setNotifications(data.notifications);
         } catch (error) {
             console.error("Failed to fetch notifications:", error);
         }
     };
 
-    const login = async (credentials: any) => {
-        dispatch({ type: "SET_LOADING", payload: true });
-        try {
-            const { data } = await authService.login(credentials);
-            console.log("🔵 Login Response:", data);
-            localStorage.setItem("user", JSON.stringify(data.user));
-            dispatch({ type: "LOGIN_SUCCESS", payload: data.user });
-            await fetchNotifications();
-        } catch (error: any) {
-            const errorMsg = error instanceof AxiosError
-                ? error.response?.data?.message || "Login failed"
-                : "An error occurred";
-            dispatch({ type: "SET_ERROR", payload: errorMsg });
-        }
-    };
-
-    const logout = async () => {
-        try {
-            await authService.logout();
-        } catch (error) {
-            console.error("Logout failed:", error);
-        } finally {
-            localStorage.removeItem("user");
-            dispatch({ type: "LOGOUT" });
+    // Auto route to login page if no token is available
+    useEffect(() => {
+        if (!token) {
             navigate("/");
         }
-    };
-
-    const refresh = async () => {
-        if (!state.user) return;
-        try {
-            const { data } = await authService.refreshToken();
-
-            if (data.token && data.refreshToken) {
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("refreshToken", data.refreshToken);
-            }
-
-            localStorage.setItem("user", JSON.stringify(data.user));
-            dispatch({ type: "LOGIN_SUCCESS", payload: data.user });
-            await fetchNotifications();
-        } catch (error) {
-            console.error("Failed to refresh token:", error);
-            logout();
-        }
-    };
-
-    const updateProfile = async (data: any) => {
-        try {
-            await authService.updateProfile(data);
-            const updatedUser = { ...state.user, ...data };
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-            dispatch({ type: "LOGIN_SUCCESS", payload: { ...state.user, ...data } });
-            await fetchNotifications();
-        } catch (error) {
-            console.error("Profile update failed:", error);
-        }
-    };
+    }, [token, navigate]);
 
 
+    // store the user data to be accessed globally
     useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-        const storedToken = localStorage.getItem("token");
-
-        try {
-            if (storedUser && storedToken) {
-                dispatch({ type: "LOGIN_SUCCESS", payload: JSON.parse(storedUser) });
-                fetchNotifications();
-            } else {
-                localStorage.removeItem("user");
-                refresh();
-            }
-        } catch (error) {
-            console.error("Error parsing stored user:", error);
-            localStorage.removeItem("user");
-            refresh();
+        if (user) {
+            localStorage.setItem("user", JSON.stringify(user));
         }
-    }, []);
+    }, [user]);
 
-
-    // ✅ Fetch notifications **only when user is authenticated**
-    useEffect(() => {
-        if (state.isAuthenticated) {
-            fetchNotifications();
-        }
-    }, [state.isAuthenticated]);
-
-    // Check if user is authenticated on app load
-    useEffect(() => {
-        if (!state.user) return;
-        const checkAuth = async () => {
-            try {
-                await refresh();
-            } catch (error) {
-                logout();
-            }
-        };
-        checkAuth();
-    }, [state.user]);
-
-    const contextValue = useMemo(() => ({
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-        notifications: state.notifications,
-        isLoading: state.isLoading,
-        error: state.error,
-        login,
-        logout,
-        refresh,
-        updateProfile,
-        fetchNotifications,
-        dispatch
-    }), [state]);
+    const contextValue = useMemo(
+        () => ({
+            login,
+            logout,
+            isAuthenticated,
+            notifications,
+            fetchNotifications,
+            refreshSession,
+            user,
+        }),
+        [isAuthenticated, user, notifications]
+    );
 
     return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
+
 
 export const useAuthContext = () => {
     const context = useContext(AuthContext);

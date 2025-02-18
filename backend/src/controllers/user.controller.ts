@@ -223,12 +223,9 @@ export const userLogin = CatchAsyncErrors(async (req: Request, res: Response, ne
 
         // ✅ Ensure password comparison works correctly
         const isPasswordMatch = await bcrypt.compare(password, user.password);
-        console.log("Password Match:", isPasswordMatch);
         if (!isPasswordMatch) {
             return next(new ErrorHandler("Invalid email or password", 400));
         }
-
-
         await setCache(String(user._id), user, 3600);
 
         sendToken(user, 200, res);
@@ -236,7 +233,6 @@ export const userLogin = CatchAsyncErrors(async (req: Request, res: Response, ne
         return next(new ErrorHandler(err.message, 400));
     }
 });
-
 
 
 // user logout handler
@@ -267,7 +263,6 @@ export const userLogout = CatchAsyncErrors(async (req: AuthenticatedRequest, res
         return next(new ErrorHandler(err.message, 400));
     }
 });
-
 
 
 // Function to generate a 4-digit activation code
@@ -487,32 +482,23 @@ export const getUserInfo = CatchAsyncErrors(async (req: AuthenticatedRequest, re
 // Update access token handler
 export const updateAccessToken = CatchAsyncErrors(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-        console.log("🔵 Received refresh-token request...");
 
         const refresh_token = req.cookies.refresh_token as string;
-        console.log("🔵 Refresh Token:", refresh_token); // Log received token
-
         if (!refresh_token) {
-            console.log("🔴 No refresh token found in cookies");
             return next(new ErrorHandler("No refresh token provided", 400));
         }
 
         // Verify the refresh token
         const decoded = jwt.verify(refresh_token, REFRESH_TOKEN as Secret) as JwtPayload;
-        console.log("🔵 Decoded Token:", decoded); // Log decoded token
-
         if (!decoded) return next(new ErrorHandler("Invalid refresh token", 400));
 
         // Check if session exists in Redis
         const session = await redis.get(decoded.id);
-        console.log("🔵 Session Data from Redis:", session);
 
         if (!session) {
-            console.log("🔴 Session expired, forcing logout");
             return next(new ErrorHandler("Session expired. Please log in again.", 400));
         }
 
-        console.log("✅ Found session in Redis:", session);
         const user = JSON.parse(session);
 
         // Generate new access & refresh tokens
@@ -536,12 +522,8 @@ export const updateAccessToken = CatchAsyncErrors(async (req: AuthenticatedReque
 
         // Store updated user session in Redis
         await setCache(user._id, user, 604800);
-
-        console.log("✅ Tokens refreshed successfully");
-
         return res.status(200).json({ success: true, accessToken });
     } catch (err: any) {
-        console.log("❌ Error refreshing token:", err.message);
         return next(new ErrorHandler("Authorization failed", 500));
     }
 });

@@ -24,7 +24,7 @@ const processQueue = (error: any, token: string | null = null) => {
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
-        const { logout, refresh } = useAuthContext();
+        const { logout, refreshSession } = useAuthContext();
         const originalRequest = error.config;
 
         // If unauthorized (401), try refreshing the token
@@ -44,7 +44,7 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                await refresh();
+                await refreshSession();
                 processQueue(null);
                 return api(originalRequest);
             } catch (refreshError) {

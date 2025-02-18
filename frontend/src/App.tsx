@@ -10,6 +10,9 @@ import Signup from "./pages/auth/signup/Signup";
 import VerifyOtp from "./pages/auth/verify-otp/VerifyOtp";
 import Dashboard from "./pages/dashboard/Dashboard";
 import Profile from "./pages/profile/Profile";
+import Settings from "./pages/settings/Settings";
+import Recommendations from "./pages/recommendations/Recommendations";
+import NewMealPlan from "./pages/newMealPlan/NewMealPlan";
 
 function App() {
   return (
@@ -63,6 +66,40 @@ function App() {
           <RequireAuth>
             <Layout>
               <Profile />
+            </Layout>
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/settings"
+        element={
+          <RequireAuth>
+            <Layout>
+              <Settings />
+            </Layout>
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/recommendations"
+        element={
+          <RequireAuth>
+            <Layout>
+              <Recommendations />
+            </Layout>
+          </RequireAuth>
+        }
+      />
+
+
+      <Route
+        path="/new-meal-plan"
+        element={
+          <RequireAuth>
+            <Layout>
+              <NewMealPlan />
             </Layout>
           </RequireAuth>
         }

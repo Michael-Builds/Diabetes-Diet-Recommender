@@ -17,7 +17,6 @@ const Login = () => {
         password: "",
     });
 
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
@@ -36,18 +35,22 @@ const Login = () => {
         setIsSubmitting(true);
 
         try {
-            await login(formData);
-            toast.success("Login successful", {
-                position: "top-center",
-                autoClose: 2000
-            });
-            navigate("/dashboard");
+            const response = await login(formData);
+            console.log("Login response", response);
+            if (response.success) {
+                toast.success(response.message, {
+                    position: "top-center",
+                    autoClose: 2000
+                });
+                navigate("/dashboard");
+            } else {
+                toast.error(response?.message || "Invalid invalid or password", {
+                    position: "top-center",
+                    autoClose: 2000
+                });
+            }
         } catch (error: any) {
-            const message =
-                error.response?.data?.message ||
-                (error.response?.status === 400
-                    ? "Invalid email or password. Please try again."
-                    : "Something went wrong. Try again later.");
+            const message = error.response?.message || "Something went wrong. Please try again later.";
 
             toast.error(message, {
                 position: "top-center",
