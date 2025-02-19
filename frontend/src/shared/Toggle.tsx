@@ -42,7 +42,12 @@ const Toggle: FC<ToggleProps> = ({
           disabled && "opacity-50 cursor-not-allowed",
           className
         )}
-        onClick={() => !disabled && onChange(!checked)}
+        onClick={(e) => {
+          e.preventDefault();
+          if (!disabled) {
+            onChange(!checked);
+          }
+        }}
         disabled={disabled}
       >
         <div

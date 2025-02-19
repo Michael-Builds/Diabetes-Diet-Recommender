@@ -71,12 +71,13 @@ const Dropdown: FC<DropdownProps> = ({
   };
 
   return (
-    <div className="w-full font-geist" ref={dropdownRef}>
+    <div className="w-full font-geist relative" ref={dropdownRef}>
       {label && <label className="block text-sm font-medium text-gray-800">{label}</label>}
 
+      {/* Input Field */}
       <div
         className={clsx(
-          "relative mt-1 border bg-white flex items-center cursor-pointer",
+          "relative mt-1 text-sm border bg-white flex items-center cursor-pointer",
           error && showErrorBelow ? "border-red-500" : "border-gray-400",
           width,
           height,
@@ -101,12 +102,13 @@ const Dropdown: FC<DropdownProps> = ({
         </div>
       </div>
 
+      {/* Dropdown List (Absolute Positioned) */}
       {isOpen && (
         <div
           ref={dropdownListRef}
           style={{ width: dropdownWidth }}
           className={clsx(
-            "absolute z-10 mt-1 bg-white shadow-lg border rounded-md overflow-hidden",
+            "absolute z-50 text-sm mt-1 bg-white shadow-lg border rounded-md overflow-hidden left-0",
             borderRadius
           )}
         >
@@ -127,13 +129,21 @@ const Dropdown: FC<DropdownProps> = ({
                 <li
                   key={opt.value}
                   className={clsx(
-                    "px-4 py-2 cursor-pointer hover:bg-gray-200",
+                    "px-4 py-2 cursor-pointer hover:bg-gray-200 flex items-center",
                     (isMultiSelect
                       ? Array.isArray(selected) && selected.includes(opt.value)
                       : selected === opt.value) && "bg-blue-100"
                   )}
                   onClick={() => handleSelect(opt.value)}
                 >
+                  {isMultiSelect && (
+                    <input
+                      type="checkbox"
+                      checked={Array.isArray(selected) && selected.includes(opt.value)}
+                      className="mr-2"
+                      readOnly
+                    />
+                  )}
                   {opt.label}
                 </li>
               ))}

@@ -70,6 +70,7 @@ export const sendToken = (user: IUser, statusCode: number, res: Response) => {
         success: true,
         user,
         accessToken,
+        refreshToken,
         message: "Logged in successfully",
     });
 };

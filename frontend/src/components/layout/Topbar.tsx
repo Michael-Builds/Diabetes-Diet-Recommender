@@ -22,7 +22,7 @@ const Topbar = React.memo(({ toggleDrawer }: any) => {
         try {
             await logout();
             toast.success("Logged out successfully", { position: "top-center", autoClose: 1000 });
-            // navigate("/")
+            navigate("/")
         } catch (error) {
             toast.error("Failed to log out. Please try again later.", { position: "top-center", autoClose: 1000 });
         }
@@ -57,7 +57,7 @@ const Topbar = React.memo(({ toggleDrawer }: any) => {
                 />
                 <div className="text-sm text-gray-700">
                     {user?.firstname}
-                    <span >{user?.lastname}</span>
+                    <span className="ml-1">{user?.lastname}</span>
                 </div>
                 <MdKeyboardArrowDown
                     size={24}

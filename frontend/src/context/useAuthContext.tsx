@@ -10,6 +10,7 @@ interface AuthContextType {
     user: any;
     notifications: any[];
     fetchNotifications: () => Promise<void>;
+    setUser: (user: any) => void; 
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,6 +27,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const login = async (credentials: any) => {
         try {
             const { data } = await authService.login(credentials);
+            console.log("Hello", data)
             if (data.success) {
                 setUser(data.user);
                 setToken(data.accessToken);
@@ -116,6 +118,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             fetchNotifications,
             refreshSession,
             user,
+            setUser
         }),
         [isAuthenticated, user, notifications]
     );
