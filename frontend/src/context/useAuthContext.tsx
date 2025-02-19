@@ -53,6 +53,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUser(null);
             setToken(null);
             setRefreshToken(null);
+            navigate("/");
         } catch (error) {
             console.error("Logout failed:", error);
         }
@@ -60,17 +61,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Refresh token function
     const refreshSession = async () => {
-        if (refreshToken) {
-            try {
-                const { data } = await authService.refreshToken();
-                if (data.success) {
-                    setToken(data.accessToken);
-                    localStorage.setItem("token", data.accessToken);
-                }
-            } catch (error) {
-                console.error("Failed to refresh session:", error);
-                logout();
+        if (!refreshToken) {
+            await logout();
+            navigate("/");
+            return;
+        }
+        try {
+            const { data } = await authService.refreshToken();
+            if (data.success) {
+                setToken(data.accessToken);
+                localStorage.setItem("token", data.accessToken);
+            } else {
+                await logout();
+                navigate("/");
             }
+        } catch (error) {
+            console.error("Failed to refresh session:", error);
+            await logout();
+            navigate("/");
         }
     };
 

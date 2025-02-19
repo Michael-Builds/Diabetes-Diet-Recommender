@@ -538,6 +538,7 @@ export const updateUserProfile = CatchAsyncErrors(async (req: AuthenticatedReque
         }
 
         const { firstname, lastname, oldPassword, newPassword, avatar, phone_number, gender } = req.body;
+        console.log("Request body", req.body); 
 
         // Fetch user from database
         const user = await userModel.findById(userId).select("+password");

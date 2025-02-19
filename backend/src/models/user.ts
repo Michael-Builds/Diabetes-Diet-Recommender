@@ -136,7 +136,7 @@ userSchema.pre<IUser>("save", async function (next) {
 // Method to sign the access token
 userSchema.methods.signAccessToken = function () {
     return jwt.sign({ id: this._id }, ACCESS_TOKEN || "", {
-        expiresIn: "24h",
+        expiresIn: "4d",
     });
 };
 

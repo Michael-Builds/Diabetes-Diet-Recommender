@@ -42,7 +42,7 @@ const Button: FC<ButtonProps> = ({
       onClick={onClick}
       disabled={disabled || isLoading}
       className={clsx(
-        "flex items-center font-geist justify-center font-medium transition-all duration-300 ease-in-out px-4",
+        "flex items-center font-geist justify-center  transition-all duration-300 ease-in-out px-4",
         width,
         height,
         borderRadius,

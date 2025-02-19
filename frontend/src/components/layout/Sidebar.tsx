@@ -4,6 +4,8 @@ import { CiCircleList } from "react-icons/ci";
 import { RiAiGenerate2 } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 import Logo from "/assets/logo.svg";
+import { LiaBookMedicalSolid } from "react-icons/lia";
+import { VscSettings } from "react-icons/vsc";
 
 const Sidebar = () => {
     const navigate = useNavigate();
@@ -13,6 +15,8 @@ const Sidebar = () => {
         { name: "Dashboard", path: "/dashboard", icon: <BsGrid size={20} /> },
         { name: "Recommendations", path: "/recommendations", icon: <CiCircleList size={20} /> },
         { name: "Generate Meal Plan", path: "/new-meal-plan", icon: <RiAiGenerate2 size={20} /> },
+        { name: "Health Records", path: "/health-records", icon: <LiaBookMedicalSolid size={20} /> },
+        { name: "Customizations", path: "/customizations", icon: <VscSettings  size={20} /> },
     ];
 
     const handleNavigation = (path: string) => {
@@ -21,7 +25,7 @@ const Sidebar = () => {
     };
 
     return (
-        <section className="bg-white font-geist shadow-sm h-full rounded-lg  w-full  flex flex-col gap-10 items-center">
+        <section className="bg-white select-none font-geist shadow-sm h-full rounded-lg  w-full  flex flex-col gap-10 items-center">
             <div className="lg:mt-5 py-3 px-5">
                 <img src={Logo} alt="Logo" className="h-12" />
             </div>

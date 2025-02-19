@@ -21,6 +21,7 @@ const Topbar = React.memo(({ toggleDrawer }: any) => {
         try {
             await logout();
             toast.success("Logged out successfully", { position: "top-center", autoClose: 1000 });
+            // navigate("/")
         } catch (error) {
             toast.error("Failed to log out. Please try again later.", { position: "top-center", autoClose: 1000 });
         }

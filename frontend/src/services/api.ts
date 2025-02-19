@@ -1,6 +1,7 @@
 import axios from "axios";
 import { domain } from "../endpoints";
 import { useAuthContext } from "../context/useAuthContext";
+import { useNavigate } from "react-router-dom";
 
 const api = axios.create({
     baseURL: domain,
@@ -25,7 +26,15 @@ api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const { logout, refreshSession } = useAuthContext();
+        const navigate = useNavigate()
         const originalRequest = error.config;
+
+        // If unauthorized (401) due to expired session, logout the user
+        if (error.response?.status === 401 && error.response?.data?.message?.includes("Session expired")) {
+            await logout();
+            navigate("/");
+            return Promise.reject(error);
+        }
 
         // If unauthorized (401), try refreshing the token
         if (error.response?.status === 401 && !originalRequest._retry) {
@@ -50,6 +59,7 @@ api.interceptors.response.use(
             } catch (refreshError) {
                 processQueue(refreshError);
                 logout();
+                navigate("/");
                 return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;
