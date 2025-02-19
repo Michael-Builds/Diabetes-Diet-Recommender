@@ -11,6 +11,8 @@ import { accessTokenOptions, refreshTokenOptions, sendToken } from '../utils/jwt
 import { redis } from '../utils/redis';
 import sendEmail from "../utils/sendEmail";
 import { CatchAsyncErrors } from './../middlewares/catchAsyncError';
+import { v2 as cloudinary } from "cloudinary";
+import fs from "fs";
 
 // Validate password strength
 export const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
@@ -537,8 +539,9 @@ export const updateUserProfile = CatchAsyncErrors(async (req: AuthenticatedReque
             return next(new ErrorHandler("User not authenticated", 401));
         }
 
-        const { firstname, lastname, oldPassword, newPassword, avatar, phone_number, gender } = req.body;
-        console.log("Request body", req.body); 
+        const { firstname, lastname, oldPassword, newPassword, phone_number, gender } = req.body;
+
+        const avatarFile = req.file;
 
         // Fetch user from database
         const user = await userModel.findById(userId).select("+password");
@@ -559,8 +562,18 @@ export const updateUserProfile = CatchAsyncErrors(async (req: AuthenticatedReque
             user.password = await bcrypt.hash(newPassword, 10);
         }
 
-        if (avatar && avatar.public_id && avatar.url) {
-            user.avatar = { public_id: avatar.public_id, url: avatar.url };
+        // Upload avatar to Cloudinary if a file is provided
+        if (avatarFile) {
+            console.log("Uploading avatar to Cloudinary...");
+            const result = await cloudinary.uploader.upload(avatarFile.path, {
+                folder: "user_avatars",
+                width: 250,
+                height: 250,
+                crop: "fill",
+            });
+            user.avatar = { public_id: result.public_id, url: result.secure_url };
+
+            fs.unlinkSync(avatarFile.path);
         }
 
         // Save updated user details

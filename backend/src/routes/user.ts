@@ -16,6 +16,7 @@ import {
     userLogout
 } from "../controllers/user.controller";
 import { isAuthenticated } from "../middlewares/auth.middleware";
+import upload from "../utils/multerConfig";
 
 const userRouter = express.Router();
 
@@ -33,7 +34,7 @@ userRouter.get("/logout", isAuthenticated, userLogout);
 userRouter.get("/get-user", isAuthenticated, getUserInfo);
 userRouter.get("/notifications", isAuthenticated, getUserNotifications);
 userRouter.put("/update-notification-status/:id", isAuthenticated, updateNotificationStatus);
-userRouter.put("/update-profile", isAuthenticated, updateUserProfile);
+userRouter.put("/update-profile", isAuthenticated, upload.single("avatar"), updateUserProfile);
 userRouter.put("/update-health-details", isAuthenticated, updateUserHealthDetails);
 userRouter.put("/update-customizations", isAuthenticated, updateUserCustomizations);
 

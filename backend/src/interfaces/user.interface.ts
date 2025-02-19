@@ -1,5 +1,7 @@
 import { Request } from "express";
 import { Document } from "mongoose";
+import { Multer } from "multer"
+
 
 export interface IUser extends Document {
     firstname: string;
@@ -58,4 +60,5 @@ export interface ILoginRequest {
 
 export interface AuthenticatedRequest extends Request {
     user?: IUser;
+    file?: Express.Multer.File;
 }
