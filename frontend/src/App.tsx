@@ -13,6 +13,8 @@ import Profile from "./pages/profile/Profile";
 import Settings from "./pages/settings/Settings";
 import Recommendations from "./pages/recommendations/Recommendations";
 import NewMealPlan from "./pages/newMealPlan/NewMealPlan";
+import HealthDetails from "./pages/health-details/HealthDetails";
+import Customizations from "./pages/customizations/Customizations";
 
 function App() {
   return (
@@ -100,6 +102,28 @@ function App() {
           <RequireAuth>
             <Layout>
               <NewMealPlan />
+            </Layout>
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/health-records"
+        element={
+          <RequireAuth>
+            <Layout>
+              <HealthDetails />
+            </Layout>
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/customizations"
+        element={
+          <RequireAuth>
+            <Layout>
+              <Customizations />
             </Layout>
           </RequireAuth>
         }

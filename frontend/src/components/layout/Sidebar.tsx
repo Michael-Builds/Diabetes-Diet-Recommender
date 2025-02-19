@@ -16,7 +16,7 @@ const Sidebar = () => {
         { name: "Recommendations", path: "/recommendations", icon: <CiCircleList size={20} /> },
         { name: "Generate Meal Plan", path: "/new-meal-plan", icon: <RiAiGenerate2 size={20} /> },
         { name: "Health Records", path: "/health-records", icon: <LiaBookMedicalSolid size={20} /> },
-        { name: "Customizations", path: "/customizations", icon: <VscSettings  size={20} /> },
+        { name: "Customizations", path: "/customizations", icon: <VscSettings size={20} /> },
     ];
 
     const handleNavigation = (path: string) => {
@@ -35,7 +35,7 @@ const Sidebar = () => {
                     <div
                         key={item.path}
                         onClick={() => handleNavigation(item.path)}
-                        className={`py-3 px-4 text-center text-gray-700 hover:bg-blue-300 hover:border-l-2 hover:border-blue-500 transition-all duration-300 flex items-center gap-2 cursor-pointer ${activePath === item.path
+                        className={`py-[10px] px-4 text-center text-gray-700 hover:bg-blue-300 hover:border-l-2 hover:border-blue-500 transition-all duration-300 flex items-center gap-2 cursor-pointer ${activePath === item.path
                             ? "bg-blue-200 border-blue-500 border-l-2"
                             : "border-l-2 border-transparent"}`} >
                         {item.icon}
