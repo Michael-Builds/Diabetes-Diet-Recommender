@@ -48,7 +48,7 @@ const Profile = () => {
     (!diatery_preferences || diatery_preferences.food_allergies.length === 0);
 
   return (
-    <section className=" lg:pb-8 font-giest lg:-mt-6 py-10 px-6 ">
+    <section className=" lg:pb-8 font-giest lg:-mt-6 py-10  ">
       <div className="max-w-screen-lg select-none lg:pb-4 mx-auto bg-white rounded-xl shadow-md overflow-hidden">
         {/* Profile Header */}
         <div className="flex items-center justify-between border border-b-1 p-6">
@@ -59,7 +59,7 @@ const Profile = () => {
               className="w-20 h-20 rounded-full mr-4"
             />
             <div>
-              <h2 className="lg:text-xl flex font-semibold items-center gap-2 text-gray-500">
+              <h2 className="lg:text-lg flex font-semibold items-center gap-2 text-gray-500">
                 {firstname} {lastname}
 
                 {isVerified &&
@@ -69,7 +69,7 @@ const Profile = () => {
                     className="text-green-500"
                   />}
               </h2>
-              <p className="text-sm text-gray-500 ">Developer - SF, Bay Area</p>
+              <p className="lg:text-xs text-gray-500 ">Developer - SF, Bay Area</p>
             </div>
           </div>
           <button onClick={() => navigate('/settings')} className="bg-blue-600 hover:bg-blue-700 text-sm text-white py-2 px-6 rounded-full">Edit Profile</button>

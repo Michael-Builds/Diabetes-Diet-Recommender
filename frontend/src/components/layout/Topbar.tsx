@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { IoIosLogOut } from "react-icons/io";
-import { MdKeyboardArrowDown, MdOutlineNotificationsActive, MdPerson, MdSettings } from "react-icons/md";
+import { MdKeyboardArrowDown, MdOutlineNotificationsActive, MdPerson } from "react-icons/md";
+import { VscSettings } from 'react-icons/vsc';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuthContext } from '../../context/useAuthContext';
@@ -27,6 +28,12 @@ const Topbar = React.memo(({ toggleDrawer }: any) => {
         }
     };
 
+    const dropdownItems = [
+        { id: "profile", label: "Profile", icon: <MdPerson size={20} className="mr-2" color={"gray"} />, path: "/profile" },
+        { id: "settings", label: "Settings", icon: <VscSettings size={20} className="mr-2" color={"gray"} />, path: "/settings" },
+        { id: "logout", label: "Logout", icon: <IoIosLogOut size={20} className="mr-2" color={"gray"} />, action: logout },
+    ];
+
     const handleNavigation = (path: string) => {
         navigate(path);
         setIsDropdownOpen(false);
@@ -50,26 +57,26 @@ const Topbar = React.memo(({ toggleDrawer }: any) => {
                 />
                 <div className="text-sm text-gray-700">
                     {user?.firstname}
-                    <span > {user?.lastname}</span>
+                    <span >{user?.lastname}</span>
                 </div>
                 <MdKeyboardArrowDown
                     size={24}
                     color={"gray"}
-                    className={`ml-2 transform transition-all ${isDropdownOpen ? 'rotate-180' : ''}`}
+                    className={`ml-2 transform transition-all duration-100 ${isDropdownOpen ? 'rotate-180' : ''}`}
                 />
 
                 {isDropdownOpen && (
                     <div className="absolute select-none lg:mt-[10.5rem] text-sm font-geist right-0 w-48 bg-white shadow-md border-gray-100 border-2 z-10">
                         <ul>
-                            <li onClick={() => handleNavigation('/profile')} className="px-4 py-2 hover:bg-gray-100 flex items-center">
-                                <MdPerson size={20} className="mr-2" color={"gray"} /> Profile
-                            </li>
-                            <li onClick={() => handleNavigation('/settings')} className="px-4 py-2 hover:bg-gray-100 flex items-center">
-                                <MdSettings size={20} className="mr-2" color={"gray"} /> Settings
-                            </li>
-                            <li onClick={handleLogout} className="px-4 py-2 hover:bg-gray-100 flex items-center" >
-                                <IoIosLogOut size={20} className="mr-2" color={"gray"} /> Logout
-                            </li>
+                            {dropdownItems.map((item) => (
+                                <li
+                                    key={item.id}
+                                    onClick={item.path ? () => handleNavigation(item.path) : handleLogout}
+                                    className="px-4 py-2 hover:bg-gray-100 flex items-center"
+                                >
+                                    {item.icon} {item.label}
+                                </li>
+                            ))}
                         </ul>
                     </div>
                 )}
