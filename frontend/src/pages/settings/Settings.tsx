@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import CustomDropdown from "../../shared/CustomDropdown";
 import Toggle from "../../shared/Toggle";
 
+
 export const dietTypes = [
     { label: "Keto", value: "keto" },
     { label: "Vegan", value: "vegan" },
@@ -160,7 +161,12 @@ const Settings = () => {
         }
 
         try {
-            const response = await axios.put(update_profile_url, data, { withCredentials: true });
+            const response = await axios.put(update_profile_url, data, {
+                withCredentials: true,
+                headers: {
+                    "Content-Type": "multipart/form-data"
+                }
+            });
             const updatedUser = { ...user, ...response.data.user };
             setUser(updatedUser);
             toast.success(response.data.message, {
@@ -457,7 +463,7 @@ const Settings = () => {
                                 alt="Profile"
                                 className="w-24 h-24 rounded-full border-2 border-gray-200"
                             />
-                            <label htmlFor="avatar" className="absolute lg:bottom-6 lg:right-[85px] p-1 bg-white rounded-full shadow-md cursor-pointer">
+                            <label htmlFor="avatar" className="absolute lg:bottom-6 lg:right-[70px] p-1 bg-white rounded-full shadow-md cursor-pointer">
                                 <span className="text-xl text-gray-500">
                                     <HiOutlinePencilSquare />
                                 </span>
@@ -472,7 +478,7 @@ const Settings = () => {
                             />
                             <p className="text-xs text-red-500 mt-1">Allowed formats: png, jpeg, jpg</p>
                         </div>
-                        <div className="lg:-ml-[70px]">
+                        <div className="lg:-ml-[55px]">
                             <h2 className="text-2xl font-semibold text-gray-700">
                                 {user.firstname} {user.lastname}
                             </h2>
