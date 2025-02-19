@@ -1,13 +1,13 @@
+import { Menu } from "lucide-react";
 import { useState } from "react";
+import Notifications from "../Notifications";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
-import { Menu } from "lucide-react";
-import Notifications from "../Notifications";
 
 const Layout = ({ children }: any) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false)
-
+  
   const toggleDrawer = () => {
     setIsDrawerOpen(!isDrawerOpen);
   };

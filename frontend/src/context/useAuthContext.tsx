@@ -27,7 +27,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const login = async (credentials: any) => {
         try {
             const { data } = await authService.login(credentials);
-            console.log("Hello", data)
             if (data.success) {
                 setUser(data.user);
                 setToken(data.accessToken);

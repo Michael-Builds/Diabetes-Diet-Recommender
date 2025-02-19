@@ -21,8 +21,6 @@ const Profile = () => {
     health_details,
   } = user;
 
-  console.log(user)
-
   const calculateProfileCompletion = () => {
     let totalFields = 10;
     let filledFields = 0;
@@ -46,6 +44,7 @@ const Profile = () => {
   useEffect(() => {
     calculateProfileCompletion();
   }, [user]);
+  
 
   const avatarUrl = avatar?.url || Avatar
 

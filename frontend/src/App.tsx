@@ -13,8 +13,24 @@ import NewMealPlan from "./pages/newMealPlan/NewMealPlan";
 import Profile from "./pages/profile/Profile";
 import Recommendations from "./pages/recommendations/Recommendations";
 import Settings from "./pages/settings/Settings";
+import { useEffect, useRef, useState } from "react";
 
 function App() {
+  const [mountCount, setMountCount] = useState(0);
+  const hasMounted = useRef(false);
+
+  useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      setMountCount(prevCount => prevCount + 1);
+      console.log("🔄 Component Mounted", mountCount);
+    }
+
+    return () => {
+      console.log("🚪 Component Unmounted");
+    };
+  }, [mountCount]);
+
   return (
     <Routes>
       {/* Public Routes */}
