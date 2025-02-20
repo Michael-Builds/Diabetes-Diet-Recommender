@@ -5,7 +5,7 @@ import { RiAiGenerate2 } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 import Logo from "/assets/logo.svg";
 
-const Sidebar = () => {
+const Sidebar = ({ closeSidebar }: { closeSidebar: () => void }) => {
     const navigate = useNavigate();
     const [activePath, setActivePath] = useState("/dashboard");
 
@@ -18,12 +18,13 @@ const Sidebar = () => {
     const handleNavigation = (path: string) => {
         setActivePath(path);
         navigate(path);
+        closeSidebar();
     };
 
     return (
         <section className="bg-white select-none font-geist shadow-sm h-full rounded-lg  w-full  flex flex-col gap-10 items-center">
-            <div className="lg:mt-5 py-3 px-5">
-                <img src={Logo} alt="Logo" className="h-12" />
+            <div className="lg:mt-5 mt-6 py-3 px-5">
+                <img src={Logo} alt="Logo" className="lg:h-12" />
             </div>
 
             <div className="flex flex-col gap-6 w-full">
@@ -31,7 +32,7 @@ const Sidebar = () => {
                     <div
                         key={item.path}
                         onClick={() => handleNavigation(item.path)}
-                        className={`py-[10px] px-4 text-center text-gray-700 hover:bg-blue-300 hover:border-l-2 hover:border-blue-500 transition-all duration-300 flex items-center gap-2 cursor-pointer ${activePath === item.path
+                        className={`py-[10px] px-4 max-sm:text-sm text-center text-gray-700 hover:bg-blue-300 hover:border-l-2 hover:border-blue-500 transition-all duration-300 flex items-center gap-2 cursor-pointer ${activePath === item.path
                             ? "bg-blue-200 border-blue-500 border-l-2"
                             : "border-l-2 border-transparent"}`} >
                         {item.icon}

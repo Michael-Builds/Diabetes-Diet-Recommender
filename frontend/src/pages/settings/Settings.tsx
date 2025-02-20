@@ -245,9 +245,9 @@ const Settings = () => {
         switch (activeTab) {
             case "Profile Update":
                 return (
-                    <form className="space-y-6 p-6">
+                    <form className="space-y-6  p-6 lg:pb-0 pb-12">
                         <div className="gflex flex-col gap-6">
-                            <div className="flex  items-center space-x-2">
+                            <div className="flex lg:flex-row flex-col items-center space-x-2 lg:space-y-0 space-y-6">
                                 <Input
                                     label="First Name"
                                     name="firstname"
@@ -268,7 +268,7 @@ const Settings = () => {
                                 />
                             </div>
 
-                            <div className="flex mt-6 items-center space-x-2">
+                            <div className="flex mt-6 items-center space-x-2 lg:flex-row flex-col lg:space-y-0 space-y-6">
                                 <Input
                                     label="Contact Phone"
                                     name="phone_number"
@@ -290,7 +290,7 @@ const Settings = () => {
                             </div>
 
                             {/* Password */}
-                            <div className="flex mt-6  space-x-2">
+                            <div className="flex mt-6 space-x-2 lg:flex-row flex-col lg:space-y-0 space-y-6">
                                 <Input
                                     label="Old Password"
                                     name="oldPassword"
@@ -313,7 +313,7 @@ const Settings = () => {
                         </div>
 
                         {/* Save Changes Button */}
-                        <div className="justify-end flex-end flex mt-4">
+                        <div className="lg:justify-end lg:flex-end flex lg:mt-4 mt-6">
                             <Button
                                 width="w-48"
                                 text="Save Changes"
@@ -326,9 +326,9 @@ const Settings = () => {
                 );
             case "Health Records":
                 return (
-                    <form className="space-y-6 p-6">
+                    <form className="space-y-6 p-6 lg:pb-0 pb-12">
                         <div className="gflex flex-col gap-6">
-                            <div className="flex  items-center space-x-2">
+                            <div className="flex items-center space-x-2 lg:flex-row flex-col lg:space-y-0 space-y-6">
                                 <Input
                                     label="Diabetic Type"
                                     name="diabetic_type"
@@ -346,7 +346,7 @@ const Settings = () => {
                                     width="w-full"
                                 />
                             </div>
-                            <div className="flex mt-4 items-center space-x-2">
+                            <div className="flex mt-4 items-center space-x-2 lg:flex-row flex-col lg:space-y-0 space-y-6">
                                 <Input
                                     label="Height (cm)"
                                     name="height"
@@ -364,7 +364,7 @@ const Settings = () => {
                                     isMultiSelect={false}
                                 />
                             </div>
-                            <div className="flex mt-4 items-center space-x-2">
+                            <div className="flex mt-4 items-center space-x-2 lg:flex-row flex-col lg:space-y-0 space-y-6">
                                 <CustomDropdown
                                     label="Food Allergies"
                                     selected={healthData.food_allergies}
@@ -379,7 +379,7 @@ const Settings = () => {
                                     width="w-full"
                                 />
                             </div>
-                            <div className="flex mt-4 items-center space-x-2">
+                            <div className="flex mt-4 items-center space-x-2 lg:flex-row flex-col lg:space-y-0 space-y-6">
                                 <CustomDropdown
                                     label="Favorite Foods"
                                     selected={healthData.favorite_foods}
@@ -390,7 +390,7 @@ const Settings = () => {
                         </div>
 
                         {/* Save Changes Button */}
-                        <div className="justify-end flex-end flex mt-4">
+                        <div className="lg:justify-end lg:flex-end flex lg:mt-4 mt-8">
                             <Button
                                 width="w-48"
                                 text="Save Changes"
@@ -414,7 +414,7 @@ const Settings = () => {
                                 />
 
                             </div>
-                            <div className="flex items-center mb-2 mt-2 space-x-4">
+                            <div className="flex items-center mb-2 mt-2 space-x-4 lg:flex-row flex-col lg:space-y-0 space-y-6">
                                 <Dropdown
                                     label="Preferred Time for Diet"
                                     options={preferredDietTimes}
@@ -463,7 +463,7 @@ const Settings = () => {
                                 alt="Profile"
                                 className="w-24 h-24 rounded-full border-2 border-gray-200"
                             />
-                            <label htmlFor="avatar" className="absolute lg:bottom-6 lg:right-[70px] p-1 bg-white rounded-full shadow-md cursor-pointer">
+                            <label htmlFor="avatar" className="absolute bottom-6 right-16 lg:bottom-6 lg:right-[70px] p-1 bg-white rounded-full shadow-md cursor-pointer">
                                 <span className="text-xl text-gray-500">
                                     <HiOutlinePencilSquare />
                                 </span>
@@ -478,11 +478,11 @@ const Settings = () => {
                             />
                             <p className="text-xs text-red-500 mt-1">Allowed formats: png, jpeg, jpg</p>
                         </div>
-                        <div className="lg:-ml-[55px]">
-                            <h2 className="text-2xl font-semibold text-gray-700">
+                        <div className="lg:-ml-[55px] -ml-10">
+                            <h2 className="lg:text-2xl text-lg font-semibold text-gray-700">
                                 {user.firstname} {user.lastname}
                             </h2>
-                            <p className="text-sm text-gray-500">Manage your profile and preferences</p>
+                            <p className="lg:text-sm text-xs lg:whitespace-normal whitespace-nowrap text-gray-500">Manage your profile and preferences</p>
                         </div>
                     </div>
                     <div className="border-b-2">
@@ -490,7 +490,7 @@ const Settings = () => {
                             {["Profile Update", "Health Records", "Customizations"].map((tab) => (
                                 <div
                                     key={tab}
-                                    className={`py-2 select-none cursor-pointer ${activeTab === tab ? "border-b-2 border-blue-600" : ""}`}
+                                    className={`lg:text-md text-sm py-2 select-none cursor-pointer ${activeTab === tab ? "border-b-2 border-blue-600" : ""}`}
                                     onClick={() => setActiveTab(tab)}
                                 >
                                     {tab}

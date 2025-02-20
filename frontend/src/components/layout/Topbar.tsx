@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { IoIosLogOut } from "react-icons/io";
 import { MdKeyboardArrowDown, MdOutlineNotificationsActive, MdPerson } from "react-icons/md";
 import { VscSettings } from 'react-icons/vsc';
@@ -10,6 +10,7 @@ import Avatar from "/assets/avator2.png";
 const Topbar = React.memo(({ toggleDrawer }: any) => {
     const { user, logout, notifications } = useAuthContext();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
 
     const toggleDropdown = () => {
@@ -39,9 +40,28 @@ const Topbar = React.memo(({ toggleDrawer }: any) => {
         setIsDropdownOpen(false);
     };
 
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        }
+
+        if (isDropdownOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        } else {
+            document.removeEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isDropdownOpen]);
+
+
     return (
         <section className="bg-white select-none pl-2 pr-2 lg:pl-8 lg:pr-8 font-geist shadow-md h-14 rounded-xl items-center flex justify-between">
-            <div className="relative" onClick={toggleDrawer}>
+            <div className="relative lg:ml-0 ml-12" onClick={toggleDrawer}>
                 <MdOutlineNotificationsActive size={26} color={"gray"} />
                 {notifications.length > 0 && (
                     <span className="absolute bottom-3 cursor-pointer left-4 text-xs text-white bg-red-500 rounded-full w-5 h-5 flex items-center justify-center">
@@ -49,7 +69,7 @@ const Topbar = React.memo(({ toggleDrawer }: any) => {
                     </span>
                 )}
             </div>
-            <div className="flex items-center cursor-pointer" onClick={toggleDropdown}>
+            <div className="flex items-center cursor-pointer" onClick={toggleDropdown} ref={dropdownRef}>
                 <img
                     src={avatarUrl}
                     alt="Profile"
@@ -66,7 +86,7 @@ const Topbar = React.memo(({ toggleDrawer }: any) => {
                 />
 
                 {isDropdownOpen && (
-                    <div className="absolute select-none lg:mt-[10.5rem] text-sm font-geist right-0 w-48 bg-white shadow-md border-gray-100 border-2 z-10">
+                    <div className="absolute select-none mt-[10.5rem] text-sm font-geist right-0 w-48 bg-white shadow-md border-gray-100 border-2 z-10">
                         <ul>
                             {dropdownItems.map((item) => (
                                 <li

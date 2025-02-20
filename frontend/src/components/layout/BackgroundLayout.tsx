@@ -1,7 +1,7 @@
 
 const BackgroundLayout = ({ children }: any) => {
     return (
-        <section className="bg-[#090E34] h-screen relative z-10 overflow-hidden pb-16 md:pt-[150px] md:pb-[120px] 2xl:pt-[160px] 2xl:pb-[100px] lg:pt-[100px] lg:pb-[160px]">
+        <section className="bg-[#090E34] h-screen relative z-10 overflow-hidden pt-[120px] 2xl:pt-[160px] 2xl:pb-[100px] lg:pt-[110px] ">
             <div className="mx-auto px-4">
                 <div className="flex justify-center items-center min-h-[calc(100vh-400px)]">
                     <div className="bg-white rounded-lg shadow-lg">

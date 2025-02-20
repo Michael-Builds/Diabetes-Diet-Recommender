@@ -44,7 +44,7 @@ const Profile = () => {
   useEffect(() => {
     calculateProfileCompletion();
   }, [user]);
-  
+
 
   const avatarUrl = avatar?.url || Avatar
 
@@ -56,7 +56,7 @@ const Profile = () => {
     <section className="lg:pb-8 font-giest lg:-mt-6 py-10">
       <div className="max-w-screen-lg select-none lg:pb-4 mx-auto bg-white rounded-xl shadow-md overflow-hidden">
         {/* Profile Header */}
-        <div className="flex items-center justify-between border border-b-1 p-6">
+        <div className="flex lg:items-center lg:flex-row flex-col justify-between border border-b-1 p-6">
           <div className="flex items-center">
             <img
               src={avatarUrl}
@@ -75,7 +75,7 @@ const Profile = () => {
           </div>
           <button
             onClick={() => navigate("/settings")}
-            className="bg-blue-600 hover:bg-blue-700 text-sm text-white py-2 px-6 rounded-full"
+            className="bg-blue-600 hover:bg-blue-700 w-[10rem] lg:mt-0 mt-4 lg:text-sm text-xs text-white py-2 px-6 rounded-full"
           >
             Edit Profile
           </button>
@@ -84,7 +84,7 @@ const Profile = () => {
         {/* Profile Details */}
         <div className="p-6">
           <h3 className="text-lg font-semibold mb-4 text-gray-500">Profile Details</h3>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 ">
             <div className="flex flex-col space-y-2">
               <p className="text-sm text-gray-500">Full Name</p>
               <p className="font-medium text-gray-600">{firstname}</p>
