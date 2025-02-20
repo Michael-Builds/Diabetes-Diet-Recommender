@@ -8,6 +8,7 @@ const Layout = ({ children }: any) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false)
 
+
   const toggleDrawer = () => {
     setIsDrawerOpen(!isDrawerOpen);
   };
@@ -16,7 +17,7 @@ const Layout = ({ children }: any) => {
     <div className="grid h-screen overflow-y-auto bg-[#f0f5f9]">
       {/* Desktop Sidebar */}
       <aside className="fixed top-0 left-0 h-screen w-64 p-3 hidden lg:!block">
-        <Sidebar closeSidebar={() => setIsOpen(false)}/>
+        <Sidebar closeSidebar={() => setIsOpen(false)} />
       </aside>
 
       {/* Mobile Drawer */}

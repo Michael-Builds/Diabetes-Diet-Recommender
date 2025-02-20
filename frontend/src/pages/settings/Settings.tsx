@@ -39,7 +39,7 @@ export const preferredDietTimes = [
 
 const Settings = () => {
     const navigate = useNavigate();
-    const { user, setUser } = useAuthContext();
+    const { user, setUser, fetchNotifications } = useAuthContext();
     const [avatar, setAvatar] = useState(user?.avatar?.url || Avatar);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [activeTab, setActiveTab] = useState("Profile Update");
@@ -173,6 +173,7 @@ const Settings = () => {
                 position: "top-center",
             });
             navigate(`/profile`);
+            await fetchNotifications();
         } catch (error: any) {
             console.error("Error: ", error.data.message);
             toast.error("Error Updating Profile", {
@@ -197,6 +198,7 @@ const Settings = () => {
                 position: "top-center",
             });
             navigate(`/profile`);
+            await fetchNotifications();
         } catch (error: any) {
             console.error("Error: ", error.data.message);
             toast.error("Error Updating Health Records", {
@@ -234,6 +236,7 @@ const Settings = () => {
                 position: "top-center"
             });
             navigate(`/profile`);
+            await fetchNotifications();
         } catch (error: any) {
             toast.error("Error updating customizations", { position: "top-center" });
         } finally {

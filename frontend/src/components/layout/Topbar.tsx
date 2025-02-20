@@ -58,14 +58,15 @@ const Topbar = React.memo(({ toggleDrawer }: any) => {
         };
     }, [isDropdownOpen]);
 
+    const unreadNotifications = notifications.filter(notification => notification.status === "unread");
 
     return (
         <section className="bg-white select-none pl-2 pr-2 lg:pl-8 lg:pr-8 font-geist shadow-md h-14 rounded-xl items-center flex justify-between">
             <div className="relative lg:ml-0 ml-12" onClick={toggleDrawer}>
                 <MdOutlineNotificationsActive size={26} color={"gray"} />
-                {notifications.length > 0 && (
+                {unreadNotifications.length > 0 && (
                     <span className="absolute bottom-3 cursor-pointer left-4 text-xs text-white bg-red-500 rounded-full w-5 h-5 flex items-center justify-center">
-                        {notifications.length > 10 ? "10+" : notifications.length}
+                        {unreadNotifications.length > 10 ? "10+" : unreadNotifications.length}
                     </span>
                 )}
             </div>

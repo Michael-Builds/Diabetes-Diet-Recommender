@@ -38,7 +38,7 @@ userRouter.put("/update-profile", isAuthenticated, upload.single("avatar"), upda
 userRouter.put("/update-health-details", isAuthenticated, updateUserHealthDetails);
 userRouter.put("/update-customizations", isAuthenticated, updateUserCustomizations);
 
-// Generate recommendations for the next 30 days
+// Generate recommendations for the next 7 days
 userRouter.post("/generate-recommendations/:userId", isAuthenticated, generateWeeklyRecommendations);
 userRouter.get("/get-recommendations/:userId", isAuthenticated, getUserRecommendations);
 

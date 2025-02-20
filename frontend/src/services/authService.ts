@@ -2,11 +2,13 @@ import axios from "axios";
 import {
     forgot_password_url,
     get_notifications_url,
+    get_recommendations_url,
     login_url,
     logout_url,
     refresh_token_url,
     reset_password_url,
     update_profile_url,
+    updated_notification_status_url,
 } from "../endpoints";
 
 export const authService = {
@@ -31,4 +33,13 @@ export const authService = {
     resetPassword: async (data: { email: string; activationCode: string; newPassword: string }) => {
         return axios.post(reset_password_url, data, { withCredentials: true });
     },
+
+    getRecommendations: async (userId: string) => {
+        return axios.get(`${get_recommendations_url}/${userId}`, { withCredentials: true });
+    },
+
+    updateNotificationStatus: async (id: string) => {
+        return axios.put(`${updated_notification_status_url}/${id}`, {}, { withCredentials: true })
+    }
+
 };

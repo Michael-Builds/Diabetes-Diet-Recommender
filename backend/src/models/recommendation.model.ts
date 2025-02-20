@@ -1,32 +1,27 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-export interface IRecommendation extends Document {
-    userId: mongoose.Schema.Types.ObjectId;
-    recommendationId: string;
-    date: Date;
-    meals: {
-        [key: string]: IMealDay;
-    };
-}
-
-export interface IMealDay {
-    breakfast: IMealEntry;
-    lunch: IMealEntry;
-    dinner: IMealEntry;
-}
-
 export interface IMealEntry {
-    date: Date;
     type: "breakfast" | "lunch" | "dinner";
     mealId: mongoose.Schema.Types.ObjectId;
     mealName: string;
 }
 
+export interface IDayMeals {
+    day: string;
+    meals: IMealEntry[];
+}
+
+export interface IRecommendation extends Document {
+    userId: mongoose.Schema.Types.ObjectId;
+    recommendations: {
+        recommendationId: string;
+        date: Date;
+        expired: boolean;
+        weeklyMeals: IDayMeals[];
+    }[];
+}
+
 const MealEntrySchema = new Schema({
-    date: {
-        type: Date,
-        required: true
-    },
     type: {
         type: String,
         enum: ["breakfast", "lunch", "dinner"],
@@ -43,19 +38,12 @@ const MealEntrySchema = new Schema({
     }
 });
 
-const MealDaySchema = new Schema({
-    breakfast: {
-        type: MealEntrySchema,
+const DayMealsSchema = new Schema({
+    day: {
+        type: String,
         required: true
     },
-    lunch: {
-        type: MealEntrySchema,
-        required: true
-    },
-    dinner: {
-        type: MealEntrySchema,
-        required: true
-    }
+    meals: [MealEntrySchema]
 });
 
 const RecommendationSchema: Schema = new mongoose.Schema(
@@ -65,19 +53,24 @@ const RecommendationSchema: Schema = new mongoose.Schema(
             ref: "User",
             required: true
         },
-        recommendationId: {
-            type: String,
-            required: true,
-            unique: true
-        },
-        date: {
-            type: Date,
-            default: Date.now
-        },
-        meals: {
-            type: Map,
-            of: MealDaySchema
-        }
+        recommendations: [
+            {
+                recommendationId: {
+                    type: String,
+                    required: true,
+                    unique: true
+                },
+                expired: {
+                    type: Boolean,
+                    default: false
+                },
+                date: {
+                    type: Date,
+                    default: Date.now
+                },
+                weeklyMeals: [DayMealsSchema]
+            }
+        ]
     },
     { timestamps: true }
 );

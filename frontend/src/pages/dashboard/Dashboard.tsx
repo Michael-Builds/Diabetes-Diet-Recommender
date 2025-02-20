@@ -1,31 +1,40 @@
 import { useAuthContext } from "../../context/useAuthContext";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from "recharts";
+import { CustomTooltip } from "../../utils/CustomToolTip";
+import { useState } from "react";
+import Dropdown from "../../shared/Dropdown";
 
 const Dashboard = () => {
-  const { user } = useAuthContext();
+  const { user, recommendations } = useAuthContext();
+  const [selectedRecommendation, setSelectedRecommendation] = useState(0)
+
+  const handleRecommendationChange = (value: string | string[]) => {
+    setSelectedRecommendation(Number(value))
+  }
+
+  // ✅ Ensure at least one recommendation exists
+  const recommendationOptions = recommendations.map((_, index) => ({
+    label: `${index + 1}${index === 0 ? "st" : index === 1 ? "nd" : "rd"} recommendation`,
+    value: String(index),
+  }));
+
+  // ✅ Get selected recommendation
+  const selectedMeals = recommendations[selectedRecommendation]?.weeklyMeals || [];
 
   // ✅ Extract user data
   const {
     health_details,
     diatery_preferences,
     customizations,
-    avatar,
-    firstname,
-    lastname,
-    email,
-    phone_number,
-    gender,
-    isVerified
   } = user || {};
-
-  // ✅ User Profile
-  const userProfile = {
-    avatarUrl: avatar?.url || "https://via.placeholder.com/100",
-    name: `${firstname} ${lastname}`,
-    email,
-    phone: phone_number || "N/A",
-    gender: gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : "N/A",
-    verified: isVerified ? "Yes ✅" : "No ❌",
-  };
 
   // ✅ Health Overview
   const healthOverviewData = [
@@ -49,20 +58,47 @@ const Dashboard = () => {
     { title: "Notification Preference", value: customizations?.notification_preference || "None", color: "text-purple-500" },
   ];
 
+
+  // ✅ Format Recommendations for Chart
+  const mealChartData = selectedMeals.map((day: any) => ({
+    day: day.day.toUpperCase(),
+    Breakfast: day.meals.filter((meal: any) => meal.type === "breakfast").length,
+    Lunch: day.meals.filter((meal: any) => meal.type === "lunch").length,
+    Dinner: day.meals.filter((meal: any) => meal.type === "dinner").length,
+
+    breakfastMeals: day.meals
+      .filter((meal: any) => meal.type === "breakfast")
+      .map((meal: any) => meal.mealName),
+
+    lunchMeals: day.meals
+      .filter((meal: any) => meal.type === "lunch")
+      .map((meal: any) => meal.mealName),
+
+    dinnerMeals: day.meals
+      .filter((meal: any) => meal.type === "dinner")
+      .map((meal: any) => meal.mealName),
+  }));
+
+
   return (
     <section className="p-6 bg-gray-100 min-h-screen font-geist">
-      <h1 className="text-2xl font-bold text-gray-700">Diabetes Dashboard</h1>
+      <div className="flex lg:flex-row flex-col lg:items-center justify-between lg:-mt-4">
+        <h1 className="text-2xl font-bold text-gray-700">Diabetes Dashboard</h1>
 
-      {/* ✅ User Profile */}
-      <div className="bg-white p-4 shadow rounded-md flex items-center gap-4 mt-6">
-        <img src={userProfile.avatarUrl} alt="User Avatar" className="w-16 h-16 rounded-full border" />
-        <div>
-          <h2 className="text-lg font-semibold text-gray-700">{userProfile.name}</h2>
-          <p className="text-sm text-gray-500">Email: <span className="text-blue-500">{userProfile.email}</span></p>
-          <p className="text-sm text-gray-500">Phone: <span className="text-green-500">{userProfile.phone}</span></p>
-          <p className="text-sm text-gray-500">Gender: <span className="text-purple-500">{userProfile.gender}</span></p>
-          <p className="text-sm text-gray-500">Verified: <span className="text-red-500">{userProfile.verified}</span></p>
-        </div>
+        {/* ✅ Recommendation Selector */}
+        {recommendations.length > 0 && (
+          <div className="mt-4">
+            <Dropdown
+              options={recommendationOptions}
+              selected={String(selectedRecommendation)}
+              onChange={handleRecommendationChange}
+              label="Pick a category"
+              isSearchable={false}
+              isMultiSelect={false}
+              className="mt-2"
+            />
+          </div>
+        )}
       </div>
 
       {/* ✅ Health Overview Section */}
@@ -75,6 +111,68 @@ const Dashboard = () => {
         ))}
       </div>
 
+      {/* ✅ Weekly Meal Plan Chart */}
+      <div className="bg-white p-4 shadow rounded-md mt-6">
+        <h2 className="text-lg font-semibold text-gray-600">Weekly Meal Plan Overview</h2>
+        <p className="text-sm text-gray-500">Number of meals scheduled per day (Hover for meal names)</p>
+
+        {mealChartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={350} >
+            <BarChart data={mealChartData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
+              <XAxis
+                dataKey="day"
+                tick={{ fontFamily: "Geist, sans-serif", fontSize: 12, fill: "#4B5563" }}
+              />
+
+              <YAxis
+                tick={{ fontFamily: "Geist, sans-serif", fontSize: 12, fill: "#4B5563" }}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
+              <Bar
+                dataKey="Breakfast"
+                stackId="a"
+                fill="#FFD700"
+                name="Breakfast 🥞"
+                label={{
+                  position: "top",
+                  fontSize: 14,
+                  fontFamily: "Geist, sans-serif",
+                  fill: "#4B5563"
+                }}
+              />
+              <Bar
+                dataKey="Lunch"
+                stackId="a"
+                fill="#32CD32"
+                name="Lunch 🍛"
+                label={{
+                  position: "top",
+                  fontSize: 14,
+                  fontFamily: "Geist, sans-serif",
+                  fill: "#4B5563"
+                }}
+              />
+              <Bar
+                dataKey="Dinner"
+                stackId="a"
+                fill="#FF4500"
+                name="Dinner 🍽️"
+                label={{
+                  position: "top",
+                  fontSize: 14,
+                  fontFamily: "Geist, sans-serif",
+                  fill: "#4B5563"
+                }}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-gray-500 mt-2">No meal data available</p>
+        )}
+      </div>
+
+
       {/* ✅ Dietary Preferences Section */}
       <div className="bg-white p-4 shadow rounded-md mt-6">
         <h2 className="text-lg font-semibold text-gray-600">Dietary Preferences</h2>
@@ -82,11 +180,12 @@ const Dashboard = () => {
           {dietaryPreferences.map((item, index) => (
             <div key={index} className="bg-gray-50 p-3 rounded-md">
               <h3 className="text-sm font-semibold text-gray-700">{item.title}</h3>
-              <p className={`text-md font-bold ${item.color}`}>{item.value}</p>
+              <p className={`capitalize text-md font-bold ${item.color}`}>{item.value}</p>
             </div>
           ))}
         </div>
       </div>
+
 
       {/* ✅ Customization Settings Section */}
       <div className="bg-white p-4 shadow rounded-md mt-6">
@@ -95,7 +194,7 @@ const Dashboard = () => {
           {customizationSettings.map((item, index) => (
             <div key={index} className="bg-gray-50 p-3 rounded-md">
               <h3 className="text-sm font-semibold text-gray-700">{item.title}</h3>
-              <p className={`text-md font-bold ${item.color}`}>{item.value}</p>
+              <p className={` text-md font-bold ${item.color}`}>{item.value}</p>
             </div>
           ))}
         </div>

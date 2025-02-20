@@ -10,7 +10,10 @@ interface AuthContextType {
     user: any;
     notifications: any[];
     fetchNotifications: () => Promise<void>;
-    setUser: (user: any) => void; 
+    setUser: (user: any) => void;
+    recommendations: any[];
+    setRecommendations: (recommendations: any[]) => void;
+    updateNotificationStatus: (notificationId: string) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,7 +22,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<any>(JSON.parse(localStorage.getItem("user") || "null"));
     const [token, setToken] = useState<string | null>(localStorage.getItem("token") || null);
     const [refreshToken, setRefreshToken] = useState<string | null>(localStorage.getItem("refreshToken") || null);
-    const [notifications, setNotifications] = useState<any[]>([]);
+    const [notifications, setNotifications] = useState<any[]>(JSON.parse(localStorage.getItem("notifications") || "[]"));
+    const [recommendations, setRecommendations] = useState<any>(JSON.parse(localStorage.getItem("recommendations") || "[]"));
     const navigate = useNavigate();
     const isAuthenticated = useMemo(() => !!token, [token]);
 
@@ -35,7 +39,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 localStorage.setItem("token", data.accessToken);
                 localStorage.setItem("refreshToken", data.refreshToken);
 
-                await fetchNotifications()
+                await fetchNotifications();
+                await fetchRecommendations();
                 return data;
             }
             throw new Error(data.message);
@@ -51,9 +56,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             localStorage.removeItem("user");
             localStorage.removeItem("token");
             localStorage.removeItem("refreshToken");
+            localStorage.removeItem("recommendations");
             setUser(null);
             setToken(null);
             setRefreshToken(null);
+            setRecommendations([])
+            setNotifications([])
             navigate("/");
         } catch (error) {
             console.error("Logout failed:", error);
@@ -88,8 +96,61 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
             const { data } = await authService.getNotifications();
             setNotifications(data.notifications);
+            localStorage.setItem("notifications", JSON.stringify(data.notifications));
         } catch (error) {
             console.error("Failed to fetch notifications:", error);
+        }
+    };
+
+    // Fetch Recommendations function
+    const fetchRecommendations = async () => {
+        try {
+            if (!user?._id) {
+                console.error("❌ User ID is missing, cannot fetch recommendations.");
+                return;
+            }
+            console.log("📢 Fetching recommendations for user:", user._id);
+
+            const { data } = await authService.getRecommendations(user._id);
+
+            if (!data || !Array.isArray(data.recommendations)) {
+                console.warn("⚠️ No recommendations returned from API, setting empty array.");
+                setRecommendations([]);
+                localStorage.setItem("recommendations", JSON.stringify([]));
+                return;
+            }
+
+            setRecommendations(data.recommendations);
+            localStorage.setItem("recommendations", JSON.stringify(data.recommendations));
+            console.log("✅ Updated Recommendations:", data.recommendations);
+        } catch (error: any) {
+            console.error("❌ Failed to fetch recommendations:", error.message);
+            setRecommendations([]);
+            localStorage.setItem("recommendations", JSON.stringify([]));
+        }
+    };
+
+    const updateNotificationStatus = async (notificationId: string): Promise<void> => {
+        try {
+            const response = await authService.updateNotificationStatus(notificationId);
+
+            if (response.data.success) {
+                setNotifications((prevNotifications) => {
+                    const updatedNotifications = prevNotifications.map((notification) =>
+                        notification._id === notificationId
+                            ? { ...notification, status: "read" }
+                            : notification
+                    );
+
+                    // ✅ Update localStorage with the new notifications list
+                    localStorage.setItem("notifications", JSON.stringify(updatedNotifications));
+
+                    return updatedNotifications;
+                });
+
+            }
+        } catch (error) {
+            console.error(`❌ Failed to update notification ${notificationId}:`, error);
         }
     };
 
@@ -99,7 +160,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             navigate("/");
         }
     }, [token, navigate]);
-
 
     // store the user data to be accessed globally
     useEffect(() => {
@@ -117,9 +177,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             fetchNotifications,
             refreshSession,
             user,
-            setUser
+            setUser,
+            recommendations,
+            setRecommendations,
+            updateNotificationStatus
         }),
-        [isAuthenticated, user, notifications]
+        [isAuthenticated, user, notifications, recommendations]
     );
 
     return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
