@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { authService } from "../services/authService";
 import { useNavigate } from "react-router-dom";
+import { setupAxiosInterceptors } from "../services/api";
 
 interface AuthContextType {
     login: (credentials: any) => Promise<any>;
@@ -167,6 +168,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             localStorage.setItem("user", JSON.stringify(user));
         }
     }, [user]);
+
+
+    useEffect(() => {
+        setupAxiosInterceptors(logout, refreshSession, navigate);
+    }, [logout, refreshSession, navigate]);
 
     const contextValue = useMemo(
         () => ({
