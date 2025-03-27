@@ -155,12 +155,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    // Auto route to login page if no token is available
-    useEffect(() => {
-        if (!token) {
-            navigate("/");
-        }
-    }, [token, navigate]);
 
     // store the user data to be accessed globally
     useEffect(() => {

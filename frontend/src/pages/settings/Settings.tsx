@@ -97,9 +97,9 @@ const Settings = () => {
             });
 
             setCustomizationData({
-                meal_reminder_preference: user.customizations.meal_reminder_preference || false,
-                preferred_time_for_diet: user.customizations.preferred_time_for_diet || "",
-                notification_preference: user.customizations.notification_preference || "",
+                meal_reminder_preference: user?.customizations?.meal_reminder_preference ?? false,
+                preferred_time_for_diet: user?.customizations?.preferred_time_for_diet ?? "",
+                notification_preference: user?.customizations?.notification_preference ?? "",
             });
         }
     }, [user]);

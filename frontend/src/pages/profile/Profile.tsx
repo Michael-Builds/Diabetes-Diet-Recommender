@@ -30,13 +30,12 @@ const Profile = () => {
     if (lastname) filledFields++;
     if (email) filledFields++;
     if (phone_number) filledFields++;
-    if (customizations.notification_preference) filledFields++;
+    if (customizations?.notification_preference) filledFields++;
     if (health_details?.height) filledFields++;
     if (health_details?.current_weight) filledFields++;
     if (diatery_preferences?.preferred_diet_type) filledFields++;
-    if (diatery_preferences?.food_allergies?.length > 0) filledFields++;
+    if (Array.isArray(diatery_preferences?.food_allergies) && diatery_preferences.food_allergies.length > 0) filledFields++;
 
-    // Calculate the percentage
     const completionPercentage = Math.round((filledFields / totalFields) * 100);
     setProfileCompletion(completionPercentage);
   };
@@ -104,7 +103,7 @@ const Profile = () => {
             <div className="flex flex-col space-y-2">
               <p className="text-sm text-gray-500">Communication</p>
               <p className="font-medium capitalize text-gray-600">
-                {customizations.notification_preference}
+                {customizations?.notification_preference || "Not set"}
               </p>
             </div>
             <div className="flex flex-col space-y-2">

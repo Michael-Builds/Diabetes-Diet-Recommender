@@ -42,7 +42,8 @@ function App() {
 
       <Route path="/register" element={
         <BackgroundLayout>
-          <Signup />
+          <Signup/>
+          {/* <Signup /> */}
         </BackgroundLayout>
       } />
 
