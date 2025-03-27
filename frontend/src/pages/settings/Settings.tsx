@@ -316,7 +316,7 @@ const Settings = () => {
                         </div>
 
                         {/* Save Changes Button */}
-                        <div className="lg:justify-end lg:flex-end flex lg:mt-4 mt-6">
+                        <div className="lg:justify-end lg:flex-end flex lg:mt-6 mt-6">
                             <Button
                                 width="w-48"
                                 text="Save Changes"
@@ -393,7 +393,7 @@ const Settings = () => {
                         </div>
 
                         {/* Save Changes Button */}
-                        <div className="lg:justify-end lg:flex-end flex lg:mt-4 mt-8">
+                        <div className="lg:justify-end lg:flex-end flex lg:mt-6 mt-8">
                             <Button
                                 width="w-48"
                                 text="Save Changes"
@@ -439,7 +439,7 @@ const Settings = () => {
                         </div>
 
                         {/* Save Customizations Button */}
-                        <div className="justify-end flex mt-4">
+                        <div className="lg:justify-end lg:flex-end flex lg:mt-6 mt-8">
                             <Button
                                 width="w-48"
                                 text="Save Changes"
