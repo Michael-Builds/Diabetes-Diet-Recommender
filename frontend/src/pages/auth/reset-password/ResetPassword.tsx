@@ -7,6 +7,7 @@ import { Lock, Key, Mail } from "lucide-react";
 import { toast } from "react-toastify";
 import { authService } from "../../../services/authService";
 import { useAuthContext } from "../../../context/useAuthContext";
+import { getErrorMessage } from "../../../utils/msc";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -54,9 +55,9 @@ const ResetPassword = () => {
       }
 
       navigate("/");
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.message || "Reset failed. Try again.";
-      toast.error(errorMsg);
+    } catch (error: unknown) {
+     const message = getErrorMessage(error);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

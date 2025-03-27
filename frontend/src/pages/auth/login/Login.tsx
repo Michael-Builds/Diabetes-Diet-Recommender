@@ -6,9 +6,10 @@ import Button from "../../../shared/Button";
 import { useAuthContext } from "../../../context/useAuthContext";
 import { Lock, Mail } from "lucide-react";
 import { toast } from "react-toastify";
+import { getErrorMessage } from "../../../utils/msc";
 
 const Login = () => {
-    const { login }: any = useAuthContext();
+    const { login } = useAuthContext();
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -36,7 +37,6 @@ const Login = () => {
 
         try {
             const response = await login(formData);
-            console.log("Login response", response);
             if (response.success) {
                 toast.success(response.message, {
                     position: "top-center",
@@ -49,8 +49,8 @@ const Login = () => {
                     autoClose: 2000
                 });
             }
-        } catch (error: any) {
-            const message = error.response?.message || "Something went wrong. Please try again later.";
+        } catch (error: unknown) {
+            const message = getErrorMessage(error);
 
             toast.error(message, {
                 position: "top-center",
