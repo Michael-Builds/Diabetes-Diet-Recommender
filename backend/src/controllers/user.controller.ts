@@ -81,6 +81,7 @@ export const accountRegister = CatchAsyncErrors(async (req: Request, res: Respon
         });
 
     } catch (error: any) {
+        console.log("register error", error)
         return next(new ErrorHandler(error.message, 500));
     }
 });

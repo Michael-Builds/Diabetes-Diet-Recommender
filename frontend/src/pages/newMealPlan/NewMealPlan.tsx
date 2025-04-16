@@ -15,50 +15,69 @@ const NewMealPlan = () => {
 
     const handleGenerateRecommendations = async () => {
         if (!userId) {
-            console.error("❌ User ID is missing.");
+            setMessage("User not authenticated.");
+            toast.error("User not authenticated!", { position: "top-center" });
             return;
         }
+
         setIsSubmitting(true);
         setMessage("");
-        try {
-            const response = await axios.post(`${generate_recommendation_url}/${userId}`, {}, { withCredentials: true });
+        toast.dismiss(); // Close any previous toasts
 
-            if (!response.data || !Array.isArray(response.data.recommendations)) {
+        try {
+            const response = await axios.post(
+                `${generate_recommendation_url}/${userId}`,
+                {},
+                { withCredentials: true }
+            );
+
+            const recommendations = response?.data?.recommendations;
+
+            if (!Array.isArray(recommendations) || recommendations.length === 0) {
                 setRecommendations([]);
                 localStorage.setItem("recommendations", JSON.stringify([]));
-                setMessage("No recommendations found. Try again later! ❌");
-                toast.error("No recommendations found", {
-                    position: "top-center",
-                })
+                const msg = "No recommendations found. Try again later! ❌";
+                setMessage(msg);
+                toast.error(msg, { position: "top-center" });
                 return;
             }
 
-            setRecommendations(response.data.recommendations);
-            localStorage.setItem("recommendations", JSON.stringify(response.data.recommendations));
-            setMessage("Weekly diet plan generated successfully! ✅");
-            toast.success("Recommendation Generated!!", {
-                position: "top-center",
-            })
+            setRecommendations(recommendations);
+            localStorage.setItem("recommendations", JSON.stringify(recommendations));
+            const successMsg = "Weekly diet plan generated successfully! ✅";
+            setMessage(successMsg);
+            toast.success("Recommendation Generated!!", { position: "top-center" });
+
             await fetchNotifications();
         } catch (error: any) {
+            console.error("Recommendation error:", error);
+
             setRecommendations([]);
             localStorage.setItem("recommendations", JSON.stringify([]));
 
-            if (error.response?.status === 400) {
-                setMessage(error.response.data.message);
-                toast.error(error.response.data.message, {
-                    position: "top-center",
-                });
+            if (axios.isAxiosError(error)) {
+                if (error.response?.status === 400) {
+                    const errMsg = error.response?.data?.message || "Bad request. ❌";
+                    setMessage(errMsg);
+                    toast.error(errMsg, { position: "top-center" });
+                } else if (error.response?.status === 401) {
+                    const errMsg = "Unauthorized access. Please login again.";
+                    setMessage(errMsg);
+                    toast.error(errMsg, { position: "top-center" });
+                } else {
+                    const errMsg = error.response?.data?.message || "Server error occurred.";
+                    setMessage(errMsg);
+                    toast.error(errMsg, { position: "top-center" });
+                }
             } else {
-                setMessage("Something went wrong! Please try again. ❌");
-                toast.error("Something went wrong!", {
-                    position: "top-center",
-                });
+                setMessage("Network error or unknown issue occurred. ❌");
+                toast.error("Network error or unknown issue occurred!", { position: "top-center" });
             }
         } finally {
             setIsSubmitting(false);
         }
     };
+
 
     return (
         <section className="h-screen flex flex-col items-center justify-center bg-gradient-to-r from-green-500 to-teal-500 text-white relative font-geist">

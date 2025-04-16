@@ -248,7 +248,7 @@ const Settings = () => {
         switch (activeTab) {
             case "Profile Update":
                 return (
-                    <form className="space-y-6  p-6 lg:pb-0 pb-12">
+                    <form className="space-y-6 p-6 lg:pb-0 pb-12 ">
                         <div className="gflex flex-col gap-6">
                             <div className="flex lg:flex-row flex-col items-center space-x-2 lg:space-y-0 space-y-6">
                                 <Input
@@ -316,7 +316,7 @@ const Settings = () => {
                         </div>
 
                         {/* Save Changes Button */}
-                        <div className="lg:justify-end lg:flex-end flex lg:mt-6 mt-6">
+                        <div className="lg:justify-end lg:flex-end flex lg:mt-6 mt-6 ">
                             <Button
                                 width="w-48"
                                 text="Save Changes"
@@ -329,7 +329,7 @@ const Settings = () => {
                 );
             case "Health Records":
                 return (
-                    <form className="space-y-6 p-6 lg:pb-0 pb-12">
+                    <form className="space-y-6 p-6 lg:pb-0 pb-12 2xl:pb-24">
                         <div className="gflex flex-col gap-6">
                             <div className="flex items-center space-x-2 lg:flex-row flex-col lg:space-y-0 space-y-6">
                                 <Input
@@ -393,7 +393,7 @@ const Settings = () => {
                         </div>
 
                         {/* Save Changes Button */}
-                        <div className="lg:justify-end lg:flex-end flex lg:mt-6 mt-8">
+                        <div className="lg:justify-end lg:flex-end flex lg:mt-6 mt-6 2xl:-mb-22">
                             <Button
                                 width="w-48"
                                 text="Save Changes"

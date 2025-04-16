@@ -1,14 +1,12 @@
 import { NextFunction, Request, Response } from "express";
+import mongoose from "mongoose";
+import { v4 as uuidv4 } from "uuid";
 import { CatchAsyncErrors } from "../middlewares/catchAsyncError";
+import recommendationModel from "../models/recommendation.model";
 import userModel from "../models/user";
 import ErrorHandler from "../utils/ErrorHandler";
 import { generateDailyMeals } from "../utils/mealGenerator";
-import recommendationModel from "../models/recommendation.model";
-import notificationModel from "../models/notification.model";
 import sendEmail from "../utils/sendEmail";
-import { v4 as uuidv4 } from "uuid";
-import { redis } from "../utils/redis";
-import mongoose from "mongoose";
 
 /**
  * Check if user has preferences set before generating recommendations

@@ -5,11 +5,12 @@ import colors from "colors";
 import swaggerUi from "swagger-ui-express";
 import fs from "fs";
 import path from "path";
-import { ORIGIN, SWAGGER_PORT } from "./config";
+import { SWAGGER_PORT } from "./config";
 import { ErrorMiddleware } from "./middlewares/error";
 import userRouter from "./routes/user";
 
 export const app = express();
+export const ORIGIN = ["http://localhost:5173", "http://localhost:5174"];
 
 app.use(express.json({ limit: "50mb" }));
 app.use(cookieParser());
@@ -17,7 +18,7 @@ app.use(cookieParser());
 app.use(
     cors({
         origin: ORIGIN,
-        methods: "GET,POST,PUT,DELETE,OPTIONS",
+        // methods: "GET,POST,PUT,DELETE,OPTIONS",
         allowedHeaders: "Content-Type,Authorization",
         credentials: true,
     })
