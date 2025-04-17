@@ -1,11 +1,15 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuthContext } from "../../context/useAuthContext";
 
 const Recommendations = () => {
-    const { recommendations } = useAuthContext();
+    const { recommendations, fetchRecommendations } = useAuthContext();
     const [expandedRecommendation, setExpandedRecommendation] = useState<string | null>(null);
     const [expandedDay, setExpandedDay] = useState<string | null>(null);
+
+    useEffect(() => {
+        fetchRecommendations();
+    }, []);
 
     return (
         <section className="min-h-screen p-6 bg-gray-100 font-geist">
@@ -17,7 +21,6 @@ const Recommendations = () => {
                 <div className="space-y-6">
                     {recommendations.map((rec: any) => (
                         <div key={rec.recommendationId} className="bg-white shadow-md rounded-lg p-4">
-                            {/* Recommendation Header */}
                             <div
                                 className="flex justify-between items-center cursor-pointer"
                                 onClick={() =>

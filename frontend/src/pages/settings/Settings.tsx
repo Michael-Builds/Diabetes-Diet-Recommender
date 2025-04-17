@@ -167,8 +167,7 @@ const Settings = () => {
                     "Content-Type": "multipart/form-data"
                 }
             });
-            const updatedUser = { ...user, ...response.data.user };
-            setUser(updatedUser);
+            setUser(response.data.user);
             toast.success(response.data.message, {
                 position: "top-center",
             });
@@ -192,8 +191,10 @@ const Settings = () => {
                 healthData,
                 { withCredentials: true }
             );
-            const updatedUser = { ...user, health_details: response.data.health_details };
-            setUser(updatedUser);
+            setUser({
+                health_details: response.data.health_details,
+                diatery_preferences: response.data.diatery_preferences
+            });
             toast.success(response.data.message, {
                 position: "top-center",
             });
@@ -230,8 +231,9 @@ const Settings = () => {
         try {
             console.log("Custimization", customizationData)
             const response = await axios.put(update_customization_url, customizationData, { withCredentials: true });
-            const updatedUser = { ...user, customizations: response.data.customizations };
-            setUser(updatedUser);
+            setUser({
+                customizations: response.data.customizations
+            });
             toast.success(response.data.message, {
                 position: "top-center"
             });

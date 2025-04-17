@@ -22,7 +22,7 @@ const NewMealPlan = () => {
 
         setIsSubmitting(true);
         setMessage("");
-        toast.dismiss(); // Close any previous toasts
+        toast.dismiss();
 
         try {
             const response = await axios.post(
@@ -35,7 +35,6 @@ const NewMealPlan = () => {
 
             if (!Array.isArray(recommendations) || recommendations.length === 0) {
                 setRecommendations([]);
-                localStorage.setItem("recommendations", JSON.stringify([]));
                 const msg = "No recommendations found. Try again later! ❌";
                 setMessage(msg);
                 toast.error(msg, { position: "top-center" });
@@ -43,7 +42,6 @@ const NewMealPlan = () => {
             }
 
             setRecommendations(recommendations);
-            localStorage.setItem("recommendations", JSON.stringify(recommendations));
             const successMsg = "Weekly diet plan generated successfully! ✅";
             setMessage(successMsg);
             toast.success("Recommendation Generated!!", { position: "top-center" });
@@ -52,8 +50,8 @@ const NewMealPlan = () => {
         } catch (error: any) {
             console.error("Recommendation error:", error);
 
+            // Use context function for error state too
             setRecommendations([]);
-            localStorage.setItem("recommendations", JSON.stringify([]));
 
             if (axios.isAxiosError(error)) {
                 if (error.response?.status === 400) {

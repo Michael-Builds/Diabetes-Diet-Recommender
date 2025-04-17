@@ -13,6 +13,7 @@ interface AuthContextType {
     fetchNotifications: () => Promise<void>;
     setUser: (user: any) => void;
     recommendations: any[];
+    fetchRecommendations: () => Promise<void>,
     setRecommendations: (recommendations: any[]) => void;
     updateNotificationStatus: (notificationId: string) => Promise<void>;
 }
@@ -20,13 +21,25 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const [user, setUser] = useState<any>(JSON.parse(localStorage.getItem("user") || "null"));
+    const [user, setUserState] = useState<any>(JSON.parse(localStorage.getItem("user") || "null"));
     const [token, setToken] = useState<string | null>(localStorage.getItem("token") || null);
     const [refreshToken, setRefreshToken] = useState<string | null>(localStorage.getItem("refreshToken") || null);
     const [notifications, setNotifications] = useState<any[]>(JSON.parse(localStorage.getItem("notifications") || "[]"));
-    const [recommendations, setRecommendations] = useState<any>(JSON.parse(localStorage.getItem("recommendations") || "[]"));
+    const [recommendations, setRecommendationsState] = useState<any>(JSON.parse(localStorage.getItem("recommendations") || "[]"));
     const navigate = useNavigate();
     const isAuthenticated = useMemo(() => !!token, [token]);
+
+    const setUser = (updatedUser: any) => {
+        const newUser = JSON.parse(JSON.stringify({ ...user, ...updatedUser }));
+        setUserState(newUser);
+        localStorage.setItem("user", JSON.stringify(newUser));
+    };
+
+    const setRecommendations = (newRecommendations: any[]) => {
+        setRecommendationsState(newRecommendations);
+        localStorage.setItem("recommendations", JSON.stringify(newRecommendations));
+    };
+
 
     // Login function
     const login = async (credentials: any) => {
@@ -123,9 +136,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             setRecommendations(data.recommendations);
             localStorage.setItem("recommendations", JSON.stringify(data.recommendations));
-            console.log("✅ Updated Recommendations:", data.recommendations);
         } catch (error: any) {
-            console.error("❌ Failed to fetch recommendations:", error.message);
             setRecommendations([]);
             localStorage.setItem("recommendations", JSON.stringify([]));
         }
@@ -178,6 +189,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             refreshSession,
             user,
             setUser,
+            fetchRecommendations,
             recommendations,
             setRecommendations,
             updateNotificationStatus
