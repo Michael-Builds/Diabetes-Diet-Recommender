@@ -8,13 +8,12 @@ const Recommendations = () => {
     const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
     useEffect(() => {
-        fetchRecommendations();
+        fetchRecommendations()
     }, []);
 
     return (
         <section className="min-h-screen p-6 bg-gray-100 font-geist">
             <h1 className="lg:text-3xl text-xl font-bold text-gray-500 mb-6">Meal Plan Recommendations</h1>
-
             {recommendations.length === 0 ? (
                 <p className="text-gray-600">No recommendations available.</p>
             ) : (

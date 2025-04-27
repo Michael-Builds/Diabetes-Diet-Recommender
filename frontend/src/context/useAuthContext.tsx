@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { authService } from "../services/authService";
 import { useNavigate } from "react-router-dom";
 import { setupAxiosInterceptors } from "../services/api";
@@ -40,6 +40,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.setItem("recommendations", JSON.stringify(newRecommendations));
     };
 
+    // Fetch Recommendations function
+    const fetchRecommendations = useCallback(async () => {
+        try {
+            if (!user?._id) {
+                return;
+            }
+            const { data } = await authService.getRecommendations(user._id);
+
+            if (!data || !Array.isArray(data.recommendations)) {
+                setRecommendations([]);
+                localStorage.setItem("recommendations", JSON.stringify([]));
+                return;
+            }
+
+            setRecommendations(data.recommendations);
+            localStorage.setItem("recommendations", JSON.stringify(data.recommendations));
+        } catch (error: any) {
+            setRecommendations([]);
+            localStorage.setItem("recommendations", JSON.stringify([]));
+        }
+    }, [user?._id])
 
     // Login function
     const login = async (credentials: any) => {
@@ -116,31 +137,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    // Fetch Recommendations function
-    const fetchRecommendations = async () => {
-        try {
-            if (!user?._id) {
-                console.error("❌ User ID is missing, cannot fetch recommendations.");
-                return;
-            }
-            console.log("📢 Fetching recommendations for user:", user._id);
-
-            const { data } = await authService.getRecommendations(user._id);
-
-            if (!data || !Array.isArray(data.recommendations)) {
-                console.warn("⚠️ No recommendations returned from API, setting empty array.");
-                setRecommendations([]);
-                localStorage.setItem("recommendations", JSON.stringify([]));
-                return;
-            }
-
-            setRecommendations(data.recommendations);
-            localStorage.setItem("recommendations", JSON.stringify(data.recommendations));
-        } catch (error: any) {
-            setRecommendations([]);
-            localStorage.setItem("recommendations", JSON.stringify([]));
-        }
-    };
 
     const updateNotificationStatus = async (notificationId: string): Promise<void> => {
         try {
