@@ -4,12 +4,12 @@ import { useAuthContext } from "../../context/useAuthContext";
 import { toast } from "react-toastify";
 
 const Recommendations = () => {
-    const { 
-        recommendations, 
-        fetchRecommendations, 
-        isLoadingRecs 
+    const {
+        recommendations,
+        fetchRecommendations,
+        isLoadingRecs
     } = useAuthContext();
-    
+
     const [expandedRecommendation, setExpandedRecommendation] = useState<string | null>(null);
     const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
@@ -29,7 +29,7 @@ const Recommendations = () => {
         return (
             <section className="min-h-screen p-6 bg-gray-100 font-geist">
                 <h1 className="lg:text-3xl text-xl font-bold text-gray-500 mb-6">
-                   Loading Recommendations
+                    Meal Plan Recommendations
                 </h1>
                 <div className="flex justify-center items-center h-64">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
@@ -44,7 +44,7 @@ const Recommendations = () => {
                 <h1 className="lg:text-3xl text-xl font-bold text-gray-500">
                     Meal Plan Recommendations
                 </h1>
-                <button 
+                <button
                     onClick={fetchRecommendations}
                     className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
                 >
@@ -55,7 +55,7 @@ const Recommendations = () => {
             {recommendations.length === 0 ? (
                 <div className="bg-white p-6 rounded-lg shadow text-center">
                     <p className="text-gray-600 mb-4">No recommendations available.</p>
-                    <button 
+                    <button
                         onClick={fetchRecommendations}
                         className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
                     >
@@ -65,16 +65,16 @@ const Recommendations = () => {
             ) : (
                 <div className="space-y-6">
                     {recommendations.map((rec) => (
-                        <div 
-                            key={rec.recommendationId} 
+                        <div
+                            key={rec.recommendationId}
                             className="bg-white shadow-md rounded-lg overflow-hidden"
                         >
                             <div
                                 className="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50 transition"
-                                onClick={() => 
+                                onClick={() =>
                                     setExpandedRecommendation(
-                                        expandedRecommendation === rec.recommendationId 
-                                            ? null 
+                                        expandedRecommendation === rec.recommendationId
+                                            ? null
                                             : rec.recommendationId
                                     )
                                 }
@@ -96,16 +96,16 @@ const Recommendations = () => {
 
                             {expandedRecommendation === rec.recommendationId && (
                                 <div className="p-4 pt-0 space-y-4">
-                                    {rec.weeklyMeals.map((day:any) => {
+                                    {rec.weeklyMeals.map((day: any) => {
                                         const dayId = `${rec.recommendationId}-${day.day}`;
                                         return (
-                                            <div 
-                                                key={dayId} 
+                                            <div
+                                                key={dayId}
                                                 className="border rounded-lg overflow-hidden bg-gray-50"
                                             >
                                                 <div
                                                     className="flex justify-between items-center p-3 cursor-pointer hover:bg-gray-100 transition"
-                                                    onClick={() => 
+                                                    onClick={() =>
                                                         setExpandedDay(expandedDay === dayId ? null : dayId)
                                                     }
                                                 >
@@ -122,8 +122,8 @@ const Recommendations = () => {
                                                 {expandedDay === dayId && (
                                                     <div className="p-3 pt-0">
                                                         <ul className="space-y-3">
-                                                            {day.meals.map((meal:any) => (
-                                                                <li 
+                                                            {day.meals.map((meal: any) => (
+                                                                <li
                                                                     key={`${dayId}-${meal.type}`}
                                                                     className="flex items-start py-2"
                                                                 >
