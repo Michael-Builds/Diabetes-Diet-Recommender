@@ -8,20 +8,6 @@ import ErrorHandler from "../utils/ErrorHandler";
 import { generateDailyMeals } from "../utils/mealGenerator";
 import sendEmail from "../utils/sendEmail";
 
-// Interface for recommendation data
-interface IRecommendation {
-    recommendationId: string;
-    date: Date;
-    expired: boolean;
-    weeklyMeals: {
-        day: string;
-        meals: {
-            type: string;
-            mealId: mongoose.Types.ObjectId;
-            mealName: string;
-        }[];
-    }[];
-}
 
 // Validate user preferences before generating recommendations
 const validateUserPreferences = (user: any): void => {
@@ -49,7 +35,7 @@ const validateUserPreferences = (user: any): void => {
 export const generateWeeklyRecommendations = CatchAsyncErrors(
     async (req: Request, res: Response, next: NextFunction) => {
         const { userId } = req.params;
-        const MAX_RECOMMENDATIONS = 3;
+        const MAX_RECOMMENDATIONS = 10;
 
         try {
             // Validate user exists
@@ -72,7 +58,7 @@ export const generateWeeklyRecommendations = CatchAsyncErrors(
 
             // Check active recommendations limit
             const activeCount = userRecommendations.recommendations.filter(
-                (rec: IRecommendation) => !rec.expired
+                (rec: any) => !rec.expired
             ).length;
 
             if (activeCount >= MAX_RECOMMENDATIONS) {
@@ -89,7 +75,7 @@ export const generateWeeklyRecommendations = CatchAsyncErrors(
             ]
 
             const recommendationId = uuidv4();
-            const weeklyMeals: IRecommendation["weeklyMeals"] = [];
+            const weeklyMeals: any["weeklyMeals"] = [];
 
             // Generate meals for 7 days
             for (let i = 0; i < 7; i++) {
@@ -134,7 +120,7 @@ export const generateWeeklyRecommendations = CatchAsyncErrors(
             }
 
             // Create and save new recommendation
-            const newRecommendation: IRecommendation = {
+            const newRecommendation: any = {
                 recommendationId,
                 date: new Date(),
                 expired: false,
@@ -143,7 +129,7 @@ export const generateWeeklyRecommendations = CatchAsyncErrors(
 
             // Check for duplicates before saving
             const duplicateExists = userRecommendations.recommendations.some(
-                (rec: IRecommendation) => rec.recommendationId === recommendationId
+                (rec: any) => rec.recommendationId === recommendationId
             );
 
             if (duplicateExists) {
@@ -195,7 +181,7 @@ export const getUserRecommendations = CatchAsyncErrors(
             }
 
             const activeRecommendations = userRecommendations.recommendations.filter(
-                (rec: IRecommendation) => !rec.expired
+                (rec: any) => !rec.expired
             );
 
             res.status(200).json({
