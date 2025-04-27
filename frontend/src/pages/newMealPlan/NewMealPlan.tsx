@@ -19,39 +19,47 @@ const NewMealPlan = () => {
             toast.error("User not authenticated!", { position: "top-center" });
             return;
         }
-
+    
         setIsSubmitting(true);
         setMessage("");
         toast.dismiss();
-
+    
         try {
-            const response = await axios.post(
+            const response = await axios.post<{
+                success: boolean;
+                recommendations: any[];
+                message?: string;
+            }>(
                 `${generate_recommendation_url}/${userId}`,
                 {},
                 { withCredentials: true }
             );
-
-            const recommendations = response?.data?.recommendations;
-
-            if (!Array.isArray(recommendations) || recommendations.length === 0) {
-                setRecommendations([]);
+    
+            const newRecommendations = response.data.recommendations;
+    
+            if (!Array.isArray(newRecommendations)) {
+                const msg = "Invalid recommendations format received from server";
+                setMessage(msg);
+                toast.error(msg, { position: "top-center" });
+                return;
+            }
+    
+            if (newRecommendations.length === 0) {
                 const msg = "No recommendations found. Try again later! ❌";
                 setMessage(msg);
                 toast.error(msg, { position: "top-center" });
                 return;
             }
-
-            setRecommendations(recommendations);
+    
+            // Merge new recommendations with existing ones
+            setRecommendations((prevRecs: any) => [...prevRecs, ...newRecommendations]);
+            
             const successMsg = "Weekly diet plan generated successfully! ✅";
             setMessage(successMsg);
             toast.success("Recommendation Generated!!", { position: "top-center" });
-
+    
             await fetchNotifications();
         } catch (error: any) {
-            console.error("Recommendation error:", error);
-
-            // Use context function for error state too
-            setRecommendations([]);
 
             if (axios.isAxiosError(error)) {
                 if (error.response?.status === 400) {
@@ -75,8 +83,6 @@ const NewMealPlan = () => {
             setIsSubmitting(false);
         }
     };
-
-
     return (
         <section className="h-screen flex flex-col items-center justify-center bg-gradient-to-r from-green-500 to-teal-500 text-white relative font-geist">
 
