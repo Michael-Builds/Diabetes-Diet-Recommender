@@ -7,14 +7,13 @@ import { useAuthContext } from "../../context/useAuthContext";
 import { generate_recommendation_url } from "../../endpoints";
 
 const NewMealPlan = () => {
-    const { user, setRecommendations, fetchNotifications } = useAuthContext();
+    const { user, fetchRecommendations, isLoadingRecs } = useAuthContext();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [message, setMessage] = useState("");
     const navigate = useNavigate();
-    const userId = user._id;
 
     const handleGenerateRecommendations = async () => {
-        if (!userId) {
+        if (!user?._id) {
             setMessage("User not authenticated.");
             toast.error("User not authenticated!", { position: "top-center" });
             return;
@@ -25,68 +24,30 @@ const NewMealPlan = () => {
         toast.dismiss();
     
         try {
-            const response = await axios.post<{
-                success: boolean;
-                recommendations: any[];
-                message?: string;
-            }>(
-                `${generate_recommendation_url}/${userId}`,
-                {},
+             await axios.post( `${generate_recommendation_url}/${user._id}`, {},
                 { withCredentials: true }
             );
-    
-            const newRecommendations = response.data.recommendations;
-    
-            if (!Array.isArray(newRecommendations)) {
-                const msg = "Invalid recommendations format received from server";
-                setMessage(msg);
-                toast.error(msg, { position: "top-center" });
-                return;
-            }
-    
-            if (newRecommendations.length === 0) {
-                const msg = "No recommendations found. Try again later! ❌";
-                setMessage(msg);
-                toast.error(msg, { position: "top-center" });
-                return;
-            }
-    
-            // Merge new recommendations with existing ones
-            setRecommendations((prevRecs: any) => [...prevRecs, ...newRecommendations]);
+            
+            await fetchRecommendations(); 
             
             const successMsg = "Weekly diet plan generated successfully! ✅";
             setMessage(successMsg);
-            toast.success("Recommendation Generated!!", { position: "top-center" });
-    
-            await fetchNotifications();
+            toast.success(successMsg, { position: "top-center" });
         } catch (error: any) {
-
-            if (axios.isAxiosError(error)) {
-                if (error.response?.status === 400) {
-                    const errMsg = error.response?.data?.message || "Bad request. ❌";
-                    setMessage(errMsg);
-                    toast.error(errMsg, { position: "top-center" });
-                } else if (error.response?.status === 401) {
-                    const errMsg = "Unauthorized access. Please login again.";
-                    setMessage(errMsg);
-                    toast.error(errMsg, { position: "top-center" });
-                } else {
-                    const errMsg = error.response?.data?.message || "Server error occurred.";
-                    setMessage(errMsg);
-                    toast.error(errMsg, { position: "top-center" });
-                }
-            } else {
-                setMessage("Network error or unknown issue occurred. ❌");
-                toast.error("Network error or unknown issue occurred!", { position: "top-center" });
-            }
+            
+            const errMsg = axios.isAxiosError(error)
+                ? error.response?.data?.message || "Request failed"
+                : "Network error occurred";
+            
+            setMessage(errMsg);
+            toast.error(errMsg, { position: "top-center" });
         } finally {
             setIsSubmitting(false);
         }
     };
+
     return (
         <section className="h-screen flex flex-col items-center justify-center bg-gradient-to-r from-green-500 to-teal-500 text-white relative font-geist">
-
-            {/* Overlay with Health-Related Animation While Loading */}
             {isSubmitting && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-75 z-50">
                     <motion.span
@@ -97,7 +58,7 @@ const NewMealPlan = () => {
                         ❤️‍🔥
                     </motion.span>
                     <p className="lg:text-lg text-md mt-4 font-semibold">
-                        Generating your personalized meal plan... Stay Healthy! 🍎
+                        Generating your personalized meal plan... Stay Healthy! �
                     </p>
                 </div>
             )}
@@ -111,12 +72,11 @@ const NewMealPlan = () => {
                     whileTap={{ scale: 0.95 }}
                     className="mt-6 text-sm lg:text-md px-6 py-3 bg-white text-green-600 font-bold rounded-full shadow-lg hover:bg-gray-200 transition"
                     onClick={handleGenerateRecommendations}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isLoadingRecs}
                 >
-                    Generate My Meal Plan
+                    {isSubmitting ? "Generating..." : "Generate My Meal Plan"}
                 </motion.button>
 
-                {/* Success/Error Message */}
                 {message && (
                     <motion.p
                         className="mt-4 text-lg font-semibold"
@@ -127,8 +87,7 @@ const NewMealPlan = () => {
                     </motion.p>
                 )}
 
-                {/* Navigate to Meal Plan Page after Success */}
-                {!isSubmitting && message.includes("ready") && (
+                {!isSubmitting && message.includes("successfully") && (
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
